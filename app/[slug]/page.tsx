@@ -78,10 +78,12 @@ async function trackClick(linkId: string, headersList: Headers) {
     const socialSource = detectSocialSource(referer);
     
     // Get location from IP (with timeout to avoid blocking)
-    let location = {};
+    let location: { country?: string; city?: string; region?: string } = {};
     try {
       const locationPromise = getLocationFromIP(ipAddress);
-      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({}), 2000)); // 2 second timeout
+      const timeoutPromise = new Promise<{ country?: string; city?: string; region?: string }>((resolve) => 
+        setTimeout(() => resolve({}), 2000)
+      ); // 2 second timeout
       location = await Promise.race([locationPromise, timeoutPromise]);
     } catch (locationError) {
       console.error("Location fetch failed (non-critical):", locationError);
@@ -110,7 +112,7 @@ async function trackClick(linkId: string, headersList: Headers) {
       isBot: deviceInfo.isBot || false,
     };
 
-    console.log("Creating click with data:", { linkId, ...clickData });
+    console.log("Creating click with data:", clickData);
     await addDoc(collection(db, "clicks"), clickData);
     console.log("Click created successfully");
 
