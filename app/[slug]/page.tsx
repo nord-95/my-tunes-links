@@ -209,7 +209,7 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
     }
 
     // Parse user agent for device/browser info
-    const { parseUserAgent, detectSocialSource, getLocationFromIP } = await import("@/lib/utils");
+    const { parseUserAgent, detectSocialSource } = await import("@/lib/utils");
     const deviceInfo = parseUserAgent(userAgent);
     
     // Additional bot detection from referrer (some services don't have obvious user agents)
@@ -268,31 +268,7 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
       })() : "none",
     });
     
-    // Get location from IP (with extended timeout for better accuracy)
-    let location: { country?: string; city?: string; region?: string; countryCode?: string; timezone?: string } = {};
-    
-    // Only try to get location if we have a valid IP
-    if (ipAddress && ipAddress !== "none" && ipAddress.length > 0) {
-      try {
-        const locationPromise = getLocationFromIP(ipAddress);
-        // Increased timeout to 6 seconds to allow all 6 services to try
-        const timeoutPromise = new Promise<typeof location>((resolve) => 
-          setTimeout(() => resolve({}), 6000)
-        );
-        location = await Promise.race([locationPromise, timeoutPromise]);
-        
-        if (location.country || location.countryCode) {
-          console.log("✅ Location data retrieved for IP", ipAddress, "from", refererHostname, ":", location);
-        } else {
-          console.warn("⚠️ No location data retrieved for IP:", ipAddress, "from", refererHostname, "- Tried 6 services");
-        }
-      } catch (locationError: any) {
-        console.error("Location fetch failed (non-critical) for IP", ipAddress, "from", refererHostname, ":", locationError.message || locationError);
-        // Continue without location data
-      }
-    } else {
-      console.warn("⚠️ No valid IP address detected from", refererHostname, ", skipping location lookup");
-    }
+    // Do not perform geolocation during redirect; defer enrichment
 
     const { addDoc, collection, doc, updateDoc, getDoc } = await import("firebase/firestore");
     const { db } = await import("@/lib/firebase");
@@ -302,17 +278,14 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
       linkId,
       timestamp: new Date(),
       isBot: deviceInfo.isBot || false,
+      enrichmentStatus: "pending",
+      enrichmentAttempts: 0,
     };
 
     // Only add fields that have actual values (not undefined)
     if (userAgent) clickDataRaw.userAgent = userAgent;
     if (referer) clickDataRaw.referrer = referer;
     if (ipAddress) clickDataRaw.ipAddress = ipAddress;
-    if (location.country) clickDataRaw.country = location.country;
-    if (location.city) clickDataRaw.city = location.city;
-    if (location.region) clickDataRaw.region = location.region;
-    if (location.countryCode) clickDataRaw.countryCode = location.countryCode;
-    if (location.timezone) clickDataRaw.timezone = location.timezone;
     if (deviceInfo.platform) clickDataRaw.platform = deviceInfo.platform;
     if (deviceInfo.device) clickDataRaw.device = deviceInfo.device;
     if (deviceInfo.deviceType) clickDataRaw.deviceType = deviceInfo.deviceType;
@@ -465,10 +438,10 @@ export default async function SlugPage({
   // We'll use a timeout but still try to save in the background
   const trackingPromise = trackClick(link.id, headersList, currentUrl, link);
   
-  // Wait up to 2 seconds for tracking, then continue with redirect
+  // Wait briefly for tracking, then continue with redirect
   Promise.race([
     trackingPromise,
-    new Promise((resolve) => setTimeout(() => resolve("timeout"), 2000)),
+    new Promise((resolve) => setTimeout(() => resolve("timeout"), 100)),
   ]).then((result) => {
     if (result === "timeout") {
       console.warn("Click tracking timed out, continuing in background");
