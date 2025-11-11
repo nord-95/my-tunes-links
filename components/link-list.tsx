@@ -180,6 +180,14 @@ export default function LinkList({ links, onUpdate }: LinkListProps) {
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => window.open(`/link/${link.id}`, "_blank")}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Details
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => window.open(`/analytics/${link.id}`, "_blank")}
                 >
                   <BarChart3 className="h-4 w-4 mr-2" />
