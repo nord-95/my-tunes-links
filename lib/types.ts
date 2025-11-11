@@ -47,6 +47,8 @@ export interface Link {
   twitterTitle?: string; // Twitter title
   twitterDescription?: string; // Twitter description
   twitterImage?: string; // Twitter image URL
+  // Site icon (favicon) for social/share contexts
+  siteIconUrl?: string; // URL to an icon, e.g., PNG, used for <link rel="icon">
 }
 
 export interface Click {

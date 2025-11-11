@@ -39,6 +39,7 @@ const linkSchema = z.object({
   twitterTitle: z.string().optional(),
   twitterDescription: z.string().optional(),
   twitterImage: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  siteIconUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
 });
 
 type LinkFormData = z.infer<typeof linkSchema>;
@@ -126,6 +127,7 @@ export default function LinkForm({ onSuccess, onCancel, initialData }: LinkFormP
       twitterTitle: "",
       twitterDescription: "",
       twitterImage: "",
+      siteIconUrl: "",
     },
   });
 
@@ -244,6 +246,9 @@ export default function LinkForm({ onSuccess, onCancel, initialData }: LinkFormP
       }
       if (data.twitterImage && data.twitterImage.trim()) {
         linkData.twitterImage = data.twitterImage.trim();
+      }
+      if (data.siteIconUrl && data.siteIconUrl.trim()) {
+        linkData.siteIconUrl = data.siteIconUrl.trim();
       }
 
       if (initialData) {
@@ -566,7 +571,7 @@ export default function LinkForm({ onSuccess, onCancel, initialData }: LinkFormP
           </div>
         </div>
 
-        {/* Twitter Card Section */}
+      {/* Twitter Card Section */}
         <div className="space-y-4 border-t pt-4 mt-4">
           <div>
             <h4 className="text-md font-semibold">Twitter Card</h4>
@@ -623,6 +628,25 @@ export default function LinkForm({ onSuccess, onCancel, initialData }: LinkFormP
               Twitter-specific image (defaults to OG image)
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Site Icon (Favicon) */}
+      <div className="space-y-4 border-t pt-4">
+        <div>
+          <h4 className="text-md font-semibold">Site Icon (Favicon)</h4>
+          <p className="text-sm text-muted-foreground">
+            Optional: URL for a site icon used in metadata. Typically a PNG (32x32 or 64x64).
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="siteIconUrl">Site Icon URL</Label>
+          <Input
+            id="siteIconUrl"
+            type="url"
+            {...register("siteIconUrl")}
+            placeholder="https://example.com/icon.png"
+          />
         </div>
       </div>
 

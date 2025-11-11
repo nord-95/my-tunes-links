@@ -365,6 +365,11 @@ export async function generateMetadata({
   const metadata: Metadata = {
     title: ogTitle,
     description: ogDescription,
+    ...(link.siteIconUrl && {
+      icons: {
+        icon: [{ url: link.siteIconUrl as string, type: "image/png" }],
+      },
+    }),
     openGraph: {
       title: ogTitle,
       description: ogDescription,
