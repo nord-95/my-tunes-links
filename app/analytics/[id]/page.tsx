@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
@@ -16,11 +16,7 @@ export default function AnalyticsPage() {
   const [clicks, setClicks] = useState<Click[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, [linkId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       // Load link
       const { doc, getDoc } = await import("firebase/firestore");
@@ -55,7 +51,11 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [linkId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const getChartData = () => {
     const dateMap = new Map<string, number>();

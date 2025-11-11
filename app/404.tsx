@@ -12,7 +12,7 @@ export default function NotFound() {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground mb-4">
-            The link you're looking for doesn't exist or has been deactivated.
+            The link you&apos;re looking for doesn&apos;t exist or has been deactivated.
           </p>
           <Link href="/">
             <Button>Go to Dashboard</Button>
