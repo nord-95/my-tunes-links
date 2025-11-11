@@ -112,9 +112,9 @@ async function trackClick(linkId: string, headersList: Headers) {
       isBot: deviceInfo.isBot || false,
     };
 
-    console.log("Creating click with data:", clickData);
-    await addDoc(collection(db, "clicks"), clickData);
-    console.log("Click created successfully");
+    console.log("Creating click with data:", { linkId, timestamp: clickData.timestamp });
+    const clickRef = await addDoc(collection(db, "clicks"), clickData);
+    console.log("Click created successfully with ID:", clickRef.id);
 
     // Update link click count
     const linkRef = doc(db, "links", linkId);
@@ -151,12 +151,24 @@ export default async function SlugPage({
   }
 
   const headersList = await headers();
-  // Track click - we'll await it briefly but with a timeout to not block too long
+  // Track click - try to save it but don't block redirect for too long
+  // We'll use a timeout but still try to save in the background
+  const trackingPromise = trackClick(link.id, headersList);
+  
+  // Wait up to 2 seconds for tracking, then continue with redirect
   Promise.race([
-    trackClick(link.id, headersList),
-    new Promise((resolve) => setTimeout(resolve, 3000)), // Max 3 seconds
-  ]).catch((error) => {
-    console.error("Error in trackClick promise:", error);
+    trackingPromise,
+    new Promise((resolve) => setTimeout(() => resolve("timeout"), 2000)),
+  ]).then((result) => {
+    if (result === "timeout") {
+      console.warn("Click tracking timed out, continuing in background");
+      // Continue tracking in background
+      trackingPromise.catch((err) => console.error("Background tracking failed:", err));
+    } else {
+      console.log("Click tracked successfully");
+    }
+  }).catch((error) => {
+    console.error("Error in trackClick:", error);
   });
 
   return <LinkRedirect link={link} />;
