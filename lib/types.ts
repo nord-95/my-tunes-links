@@ -50,6 +50,8 @@ export interface Click {
   utmSource?: string; // UTM source parameter
   utmMedium?: string; // UTM medium parameter
   utmCampaign?: string; // UTM campaign parameter
+  utmContent?: string; // UTM content parameter
+  fbclid?: string; // Facebook click ID
   isBot?: boolean;
 }
 

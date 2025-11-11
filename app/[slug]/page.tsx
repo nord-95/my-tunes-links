@@ -63,7 +63,7 @@ async function getLink(slug: string): Promise<Link | null> {
   }
 }
 
-async function trackClick(linkId: string, headersList: Headers) {
+async function trackClick(linkId: string, headersList: Headers, currentUrl?: string) {
   try {
     const userAgent = headersList.get("user-agent") || "";
     const referer = headersList.get("referer") || "";
@@ -77,19 +77,37 @@ async function trackClick(linkId: string, headersList: Headers) {
         headersList.get("x-client-ip") || 
         "";
 
-    // Parse URL parameters for UTM tracking
-    let urlParams: URLSearchParams | undefined;
+    // Parse URL parameters from CURRENT URL (the short link URL) - this is where UTM and fbclid are
+    let currentUrlParams: URLSearchParams | undefined;
     let utmSource: string | undefined;
     let utmMedium: string | undefined;
     let utmCampaign: string | undefined;
+    let utmContent: string | undefined;
+    let fbclid: string | undefined;
     
-    if (referer) {
+    // Parse current URL for UTM and tracking parameters
+    if (currentUrl) {
+      try {
+        const url = new URL(currentUrl);
+        currentUrlParams = url.searchParams;
+        utmSource = currentUrlParams.get("utm_source") || undefined;
+        utmMedium = currentUrlParams.get("utm_medium") || undefined;
+        utmCampaign = currentUrlParams.get("utm_campaign") || undefined;
+        utmContent = currentUrlParams.get("utm_content") || undefined;
+        fbclid = currentUrlParams.get("fbclid") || undefined;
+      } catch (e) {
+        console.warn("Failed to parse current URL:", e);
+      }
+    }
+
+    // Also check referrer for UTM (in case they're in the referrer)
+    if (referer && !utmSource) {
       try {
         const refererUrl = new URL(referer);
-        urlParams = refererUrl.searchParams;
-        utmSource = urlParams.get("utm_source") || undefined;
-        utmMedium = urlParams.get("utm_medium") || undefined;
-        utmCampaign = urlParams.get("utm_campaign") || undefined;
+        const refererParams = refererUrl.searchParams;
+        if (!utmSource) utmSource = refererParams.get("utm_source") || undefined;
+        if (!utmMedium) utmMedium = refererParams.get("utm_medium") || undefined;
+        if (!utmCampaign) utmCampaign = refererParams.get("utm_campaign") || undefined;
       } catch (e) {
         // Invalid URL, skip UTM parsing
       }
@@ -98,8 +116,42 @@ async function trackClick(linkId: string, headersList: Headers) {
     // Parse user agent for device/browser info
     const { parseUserAgent, detectSocialSource, getLocationFromIP } = await import("@/lib/utils");
     const deviceInfo = parseUserAgent(userAgent);
-    // Pass URL params for better social source detection
-    const socialSource = detectSocialSource(referer, urlParams);
+    
+    // Detect social source - prioritize fbclid, then UTM, then referrer
+    let socialSource: string | undefined;
+    if (fbclid) {
+      // fbclid indicates Facebook
+      socialSource = "Facebook";
+      console.log("✅ Detected Facebook via fbclid");
+    } else if (utmSource) {
+      // Check if UTM source indicates a social platform
+      socialSource = detectSocialSource("", currentUrlParams);
+      if (socialSource) {
+        console.log(`✅ Detected social source via UTM: ${socialSource} (utm_source=${utmSource})`);
+      }
+    } else {
+      // Fall back to referrer detection
+      socialSource = detectSocialSource(referer, currentUrlParams);
+      if (socialSource) {
+        console.log(`✅ Detected social source via referrer: ${socialSource}`);
+      }
+    }
+    
+    console.log("Tracking data:", {
+      fbclid: !!fbclid,
+      utmSource,
+      utmMedium,
+      utmCampaign,
+      utmContent,
+      socialSource,
+      referer: referer ? (() => {
+        try {
+          return new URL(referer).hostname;
+        } catch {
+          return referer.substring(0, 50);
+        }
+      })() : "none",
+    });
     
     // Get location from IP (with timeout to avoid blocking)
     let location: { country?: string; city?: string; region?: string; countryCode?: string; timezone?: string } = {};
@@ -142,6 +194,8 @@ async function trackClick(linkId: string, headersList: Headers) {
     if (utmSource) clickDataRaw.utmSource = utmSource;
     if (utmMedium) clickDataRaw.utmMedium = utmMedium;
     if (utmCampaign) clickDataRaw.utmCampaign = utmCampaign;
+    if (utmContent) clickDataRaw.utmContent = utmContent;
+    if (fbclid) clickDataRaw.fbclid = fbclid; // Store fbclid for Facebook attribution
 
     console.log("Creating click with data:", { linkId, timestamp: clickDataRaw.timestamp, fieldCount: Object.keys(clickDataRaw).length });
     const clickRef = await addDoc(collection(db, "clicks"), clickDataRaw);
@@ -171,8 +225,10 @@ async function trackClick(linkId: string, headersList: Headers) {
 
 export default async function SlugPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { slug } = await params;
   const link = await getLink(slug);
@@ -182,9 +238,30 @@ export default async function SlugPage({
   }
 
   const headersList = await headers();
+  
+  // Build current URL with query parameters for tracking
+  // Get the full URL from headers
+  const host = headersList.get("host") || headersList.get("x-forwarded-host") || "";
+  const protocol = headersList.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+  const path = `/${slug}`;
+  
+  // Get query string from searchParams
+  const paramsObj = await searchParams;
+  const queryParts: string[] = [];
+  for (const [key, value] of Object.entries(paramsObj)) {
+    if (value) {
+      queryParts.push(`${key}=${encodeURIComponent(Array.isArray(value) ? value[0] : value)}`);
+    }
+  }
+  const queryString = queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
+  
+  const currentUrl = `${protocol}://${host}${path}${queryString}`;
+  
+  console.log("Tracking click for URL:", currentUrl); // Debug log
+  
   // Track click - try to save it but don't block redirect for too long
   // We'll use a timeout but still try to save in the background
-  const trackingPromise = trackClick(link.id, headersList);
+  const trackingPromise = trackClick(link.id, headersList, currentUrl);
   
   // Wait up to 2 seconds for tracking, then continue with redirect
   Promise.race([

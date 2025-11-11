@@ -167,6 +167,9 @@ export function detectSocialSource(referrer: string, urlParams?: URLSearchParams
       // Instagram
       "instagram.com": "Instagram",
       "www.instagram.com": "Instagram",
+      "m.instagram.com": "Instagram",
+      "l.instagram.com": "Instagram",
+      "instagram": "Instagram", // For subdomain matching
       // LinkedIn
       "linkedin.com": "LinkedIn",
       "www.linkedin.com": "LinkedIn",

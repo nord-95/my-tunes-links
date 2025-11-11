@@ -528,6 +528,13 @@ export default function AnalyticsPage() {
                         <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
                           🏷️ UTM: {click.utmSource}
                           {click.utmMedium && ` (${click.utmMedium})`}
+                          {click.utmCampaign && ` - ${click.utmCampaign}`}
+                          {click.utmContent && ` [${click.utmContent}]`}
+                        </span>
+                      )}
+                      {click.fbclid && !click.utmSource && (
+                        <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded">
+                          📘 Facebook Click ID
                         </span>
                       )}
                       {click.isBot && (
