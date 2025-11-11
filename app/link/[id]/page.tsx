@@ -7,16 +7,6 @@ import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-// Badge component - simple inline implementation
-const Badge = ({ children, variant = "default", className = "" }: { children: React.ReactNode; variant?: "default" | "secondary" | "outline"; className?: string }) => {
-  const baseClasses = "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold";
-  const variantClasses = {
-    default: "bg-primary text-primary-foreground",
-    secondary: "bg-secondary text-secondary-foreground",
-    outline: "border border-input bg-background",
-  };
-  return <span className={`${baseClasses} ${variantClasses[variant]} ${className}`}>{children}</span>;
-};
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
@@ -37,6 +27,17 @@ import {
   Image as ImageIcon,
   Settings
 } from "lucide-react";
+
+// Badge component - simple inline implementation
+const Badge = ({ children, variant = "default", className = "" }: { children: React.ReactNode; variant?: "default" | "secondary" | "outline"; className?: string }) => {
+  const baseClasses = "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold";
+  const variantClasses = {
+    default: "bg-primary text-primary-foreground",
+    secondary: "bg-secondary text-secondary-foreground",
+    outline: "border border-input bg-background",
+  };
+  return <span className={`${baseClasses} ${variantClasses[variant]} ${className}`}>{children}</span>;
+};
 
 export default function LinkDetailsPage() {
   const params = useParams();
