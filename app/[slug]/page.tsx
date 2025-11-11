@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
+import type { Metadata } from "next";
 import LinkRedirect from "@/components/link-redirect";
 import { Link } from "@/lib/types";
 
