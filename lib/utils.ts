@@ -457,8 +457,8 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
   
   // Check results in order of preference
   for (const settledResult of results) {
-    if (settledResult.status === 'fulfilled' && settledResult.value.success) {
-      const { result } = settledResult.value;
+    if (settledResult.status === 'fulfilled' && settledResult.value.success && settledResult.value.result) {
+      const result = settledResult.value.result;
       console.log(`✅ Location found via service ${settledResult.value.serviceIndex + 1} for IP ${cleanIP}:`, result);
       return result;
     }
