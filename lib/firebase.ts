@@ -1,7 +1,7 @@
 import { initializeApp, getApps, FirebaseApp } from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
 import { getAuth, Auth } from "firebase/auth";
-import { getAnalytics, Analytics } from "firebase/analytics";
+import { getAnalytics, Analytics, isSupported } from "firebase/analytics";
 
 let app: FirebaseApp;
 let db: Firestore;
@@ -22,8 +22,23 @@ if (typeof window !== "undefined" && !getApps().length) {
   app = initializeApp(firebaseConfig);
   db = getFirestore(app);
   auth = getAuth(app);
-  if (typeof window !== "undefined") {
-    analytics = getAnalytics(app);
+  // Only initialize Analytics if measurementId exists and in browser
+  // Analytics cookies warnings are harmless but we'll initialize it conditionally
+  if (firebaseConfig.measurementId && typeof window !== "undefined") {
+    isSupported()
+      .then((supported) => {
+        if (supported) {
+          try {
+            analytics = getAnalytics(app);
+          } catch (error) {
+            // Analytics initialization failed - this is okay, we can continue without it
+            console.warn("Firebase Analytics not available:", error);
+          }
+        }
+      })
+      .catch(() => {
+        // Analytics not supported - this is fine
+      });
   }
 } else if (getApps().length) {
   app = getApps()[0];
