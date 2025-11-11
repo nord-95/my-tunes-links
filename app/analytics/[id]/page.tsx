@@ -195,6 +195,33 @@ export default function AnalyticsPage() {
       .slice(0, 10);
   };
 
+  const getCityData = () => {
+    const cityMap = new Map<string, { count: number; country?: string }>();
+    clicks.forEach((click) => {
+      if (click.city) {
+        const key = click.country ? `${click.city}, ${click.country}` : click.city;
+        const existing = cityMap.get(key) || { count: 0, country: click.country };
+        cityMap.set(key, { count: existing.count + 1, country: click.country });
+      }
+    });
+    return Array.from(cityMap.entries())
+      .map(([city, data]) => ({ city, count: data.count, country: data.country }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  };
+
+  const getUTMData = () => {
+    const utmMap = new Map<string, number>();
+    clicks.forEach((click) => {
+      if (click.utmSource) {
+        utmMap.set(click.utmSource, (utmMap.get(click.utmSource) || 0) + 1);
+      }
+    });
+    return Array.from(utmMap.entries())
+      .map(([source, count]) => ({ source, count }))
+      .sort((a, b) => b.count - a.count);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -217,8 +244,12 @@ export default function AnalyticsPage() {
   const osData = getOSData();
   const socialSourceData = getSocialSourceData();
   const countryData = getCountryData();
+  const cityData = getCityData();
+  const utmData = getUTMData();
   const uniqueCountries = new Set(clicks.filter(c => c.country).map(c => c.country)).size;
+  const uniqueCities = new Set(clicks.filter(c => c.city).map(c => `${c.city}, ${c.country || 'Unknown'}`)).size;
   const socialClicks = clicks.filter(c => c.socialSource).length;
+  const utmClicks = clicks.filter(c => c.utmSource).length;
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -243,7 +274,7 @@ export default function AnalyticsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{uniqueCountries}</p>
-              <p className="text-sm text-muted-foreground">Unique locations</p>
+              <p className="text-sm text-muted-foreground">{uniqueCities} cities</p>
             </CardContent>
           </Card>
           <Card>
@@ -252,7 +283,10 @@ export default function AnalyticsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{socialClicks}</p>
-              <p className="text-sm text-muted-foreground">From social media</p>
+              <p className="text-sm text-muted-foreground">
+                {utmClicks > 0 && `${utmClicks} with UTM`}
+                {utmClicks === 0 && "From social media"}
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -404,6 +438,46 @@ export default function AnalyticsPage() {
               )}
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Cities</CardTitle>
+              <CardDescription>City-level distribution</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {cityData.length > 0 ? (
+                <div className="space-y-2">
+                  {cityData.map((item, index) => (
+                    <div key={index} className="flex justify-between items-center">
+                      <span className="text-sm">{item.city}</span>
+                      <span className="text-sm font-medium">{item.count}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">No city data</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {utmData.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>UTM Sources</CardTitle>
+                <CardDescription>Traffic sources from UTM parameters</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {utmData.map((item) => (
+                    <div key={item.source} className="flex justify-between items-center">
+                      <span className="text-sm">{item.source}</span>
+                      <span className="text-sm font-medium">{item.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <Card>
@@ -448,6 +522,12 @@ export default function AnalyticsPage() {
                       {click.socialSource && (
                         <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
                           📱 {click.socialSource}
+                        </span>
+                      )}
+                      {click.utmSource && (
+                        <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
+                          🏷️ UTM: {click.utmSource}
+                          {click.utmMedium && ` (${click.utmMedium})`}
                         </span>
                       )}
                       {click.isBot && (

@@ -68,22 +68,46 @@ async function trackClick(linkId: string, headersList: Headers) {
     const userAgent = headersList.get("user-agent") || "";
     const referer = headersList.get("referer") || "";
     
-    // Get IP address
+    // Get IP address - check multiple headers for better accuracy
     const forwarded = headersList.get("x-forwarded-for");
-    const ipAddress = forwarded ? forwarded.split(",")[0].trim() : headersList.get("x-real-ip") || "";
+    const ipAddress = forwarded 
+      ? forwarded.split(",")[0].trim() 
+      : headersList.get("x-real-ip") || 
+        headersList.get("cf-connecting-ip") || // Cloudflare
+        headersList.get("x-client-ip") || 
+        "";
+
+    // Parse URL parameters for UTM tracking
+    let urlParams: URLSearchParams | undefined;
+    let utmSource: string | undefined;
+    let utmMedium: string | undefined;
+    let utmCampaign: string | undefined;
+    
+    if (referer) {
+      try {
+        const refererUrl = new URL(referer);
+        urlParams = refererUrl.searchParams;
+        utmSource = urlParams.get("utm_source") || undefined;
+        utmMedium = urlParams.get("utm_medium") || undefined;
+        utmCampaign = urlParams.get("utm_campaign") || undefined;
+      } catch (e) {
+        // Invalid URL, skip UTM parsing
+      }
+    }
 
     // Parse user agent for device/browser info
     const { parseUserAgent, detectSocialSource, getLocationFromIP } = await import("@/lib/utils");
     const deviceInfo = parseUserAgent(userAgent);
-    const socialSource = detectSocialSource(referer);
+    // Pass URL params for better social source detection
+    const socialSource = detectSocialSource(referer, urlParams);
     
     // Get location from IP (with timeout to avoid blocking)
-    let location: { country?: string; city?: string; region?: string } = {};
+    let location: { country?: string; city?: string; region?: string; countryCode?: string; timezone?: string } = {};
     try {
       const locationPromise = getLocationFromIP(ipAddress);
-      const timeoutPromise = new Promise<{ country?: string; city?: string; region?: string }>((resolve) => 
-        setTimeout(() => resolve({}), 2000)
-      ); // 2 second timeout
+      const timeoutPromise = new Promise<typeof location>((resolve) => 
+        setTimeout(() => resolve({}), 2500)
+      ); // 2.5 second timeout for better accuracy
       location = await Promise.race([locationPromise, timeoutPromise]);
     } catch (locationError) {
       console.error("Location fetch failed (non-critical):", locationError);
@@ -107,12 +131,17 @@ async function trackClick(linkId: string, headersList: Headers) {
     if (location.country) clickDataRaw.country = location.country;
     if (location.city) clickDataRaw.city = location.city;
     if (location.region) clickDataRaw.region = location.region;
+    if (location.countryCode) clickDataRaw.countryCode = location.countryCode;
+    if (location.timezone) clickDataRaw.timezone = location.timezone;
     if (deviceInfo.platform) clickDataRaw.platform = deviceInfo.platform;
     if (deviceInfo.device) clickDataRaw.device = deviceInfo.device;
     if (deviceInfo.deviceType) clickDataRaw.deviceType = deviceInfo.deviceType;
     if (deviceInfo.browser) clickDataRaw.browser = deviceInfo.browser;
     if (deviceInfo.os) clickDataRaw.os = deviceInfo.os;
     if (socialSource) clickDataRaw.socialSource = socialSource;
+    if (utmSource) clickDataRaw.utmSource = utmSource;
+    if (utmMedium) clickDataRaw.utmMedium = utmMedium;
+    if (utmCampaign) clickDataRaw.utmCampaign = utmCampaign;
 
     console.log("Creating click with data:", { linkId, timestamp: clickDataRaw.timestamp, fieldCount: Object.keys(clickDataRaw).length });
     const clickRef = await addDoc(collection(db, "clicks"), clickDataRaw);

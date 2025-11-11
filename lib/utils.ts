@@ -107,35 +107,140 @@ export function parseUserAgent(userAgent: string): {
   };
 }
 
-export function detectSocialSource(referrer: string): string | undefined {
+export function detectSocialSource(referrer: string, urlParams?: URLSearchParams): string | undefined {
+  // First check UTM source parameter (most accurate)
+  if (urlParams) {
+    const utmSource = urlParams.get("utm_source");
+    if (utmSource) {
+      // Normalize common UTM sources
+      const normalized = utmSource.toLowerCase();
+      const utmMap: Record<string, string> = {
+        "facebook": "Facebook",
+        "fb": "Facebook",
+        "twitter": "Twitter",
+        "x": "Twitter",
+        "instagram": "Instagram",
+        "ig": "Instagram",
+        "linkedin": "LinkedIn",
+        "pinterest": "Pinterest",
+        "reddit": "Reddit",
+        "tiktok": "TikTok",
+        "youtube": "YouTube",
+        "yt": "YouTube",
+        "snapchat": "Snapchat",
+        "whatsapp": "WhatsApp",
+        "telegram": "Telegram",
+        "discord": "Discord",
+        "messenger": "Messenger",
+        "spotify": "Spotify",
+        "apple_music": "Apple Music",
+        "soundcloud": "SoundCloud",
+      };
+      if (utmMap[normalized]) {
+        return utmMap[normalized];
+      }
+      // Return capitalized version if not in map
+      return utmSource.charAt(0).toUpperCase() + utmSource.slice(1).toLowerCase();
+    }
+  }
+
   if (!referrer) return undefined;
   
-  const ref = referrer.toLowerCase();
-  
-  const socialSources: Record<string, string> = {
-    "facebook.com": "Facebook",
-    "fb.com": "Facebook",
-    "m.facebook.com": "Facebook",
-    "twitter.com": "Twitter",
-    "x.com": "Twitter",
-    "t.co": "Twitter",
-    "instagram.com": "Instagram",
-    "linkedin.com": "LinkedIn",
-    "pinterest.com": "Pinterest",
-    "reddit.com": "Reddit",
-    "tiktok.com": "TikTok",
-    "youtube.com": "YouTube",
-    "youtu.be": "YouTube",
-    "snapchat.com": "Snapchat",
-    "whatsapp.com": "WhatsApp",
-    "telegram.org": "Telegram",
-    "discord.com": "Discord",
-    "messenger.com": "Messenger",
-  };
+  try {
+    const url = new URL(referrer);
+    const hostname = url.hostname.toLowerCase();
+    
+    // More comprehensive social media detection
+    const socialSources: Record<string, string> = {
+      // Facebook
+      "facebook.com": "Facebook",
+      "fb.com": "Facebook",
+      "m.facebook.com": "Facebook",
+      "www.facebook.com": "Facebook",
+      "l.facebook.com": "Facebook",
+      // Twitter/X
+      "twitter.com": "Twitter",
+      "x.com": "Twitter",
+      "www.twitter.com": "Twitter",
+      "www.x.com": "Twitter",
+      "t.co": "Twitter",
+      // Instagram
+      "instagram.com": "Instagram",
+      "www.instagram.com": "Instagram",
+      // LinkedIn
+      "linkedin.com": "LinkedIn",
+      "www.linkedin.com": "LinkedIn",
+      // Pinterest
+      "pinterest.com": "Pinterest",
+      "www.pinterest.com": "Pinterest",
+      "pin.it": "Pinterest",
+      // Reddit
+      "reddit.com": "Reddit",
+      "www.reddit.com": "Reddit",
+      // TikTok
+      "tiktok.com": "TikTok",
+      "www.tiktok.com": "TikTok",
+      "vm.tiktok.com": "TikTok",
+      // YouTube
+      "youtube.com": "YouTube",
+      "www.youtube.com": "YouTube",
+      "youtu.be": "YouTube",
+      "m.youtube.com": "YouTube",
+      // Snapchat
+      "snapchat.com": "Snapchat",
+      // WhatsApp
+      "whatsapp.com": "WhatsApp",
+      "wa.me": "WhatsApp",
+      // Telegram
+      "telegram.org": "Telegram",
+      "t.me": "Telegram",
+      // Discord
+      "discord.com": "Discord",
+      "discord.gg": "Discord",
+      // Messenger
+      "messenger.com": "Messenger",
+      "m.me": "Messenger",
+      // Music platforms (often shared on social)
+      "open.spotify.com": "Spotify",
+      "spotify.com": "Spotify",
+      "music.apple.com": "Apple Music",
+      "soundcloud.com": "SoundCloud",
+    };
 
-  for (const [domain, source] of Object.entries(socialSources)) {
-    if (ref.includes(domain)) {
-      return source;
+    // Check exact hostname match first
+    if (socialSources[hostname]) {
+      return socialSources[hostname];
+    }
+
+    // Check if hostname contains any social domain
+    for (const [domain, source] of Object.entries(socialSources)) {
+      if (hostname.includes(domain.replace("www.", ""))) {
+        return source;
+      }
+    }
+  } catch (error) {
+    // If URL parsing fails, fall back to simple string matching
+    const ref = referrer.toLowerCase();
+    const simpleSources: Record<string, string> = {
+      "facebook": "Facebook",
+      "twitter": "Twitter",
+      "x.com": "Twitter",
+      "instagram": "Instagram",
+      "linkedin": "LinkedIn",
+      "pinterest": "Pinterest",
+      "reddit": "Reddit",
+      "tiktok": "TikTok",
+      "youtube": "YouTube",
+      "snapchat": "Snapchat",
+      "whatsapp": "WhatsApp",
+      "telegram": "Telegram",
+      "discord": "Discord",
+    };
+
+    for (const [key, source] of Object.entries(simpleSources)) {
+      if (ref.includes(key)) {
+        return source;
+      }
     }
   }
 
@@ -146,16 +251,31 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
   country?: string;
   city?: string;
   region?: string;
+  countryCode?: string;
+  timezone?: string;
 }> {
-  if (!ipAddress || ipAddress === "localhost" || ipAddress.startsWith("127.") || ipAddress.startsWith("192.168.")) {
+  if (!ipAddress || 
+      ipAddress === "localhost" || 
+      ipAddress.startsWith("127.") || 
+      ipAddress.startsWith("192.168.") ||
+      ipAddress.startsWith("10.") ||
+      ipAddress.startsWith("172.")) {
     return {};
   }
 
+  // Try ip-api.com first (free, reliable)
   try {
-    // Using ip-api.com (free, no API key required, 45 requests/minute)
-    // Use HTTPS for production, HTTP for localhost
     const protocol = typeof window === "undefined" && process.env.NODE_ENV === "production" ? "https" : "http";
-    const response = await fetch(`${protocol}://ip-api.com/json/${ipAddress}?fields=status,message,country,regionName,city`);
+    const response = await fetch(`${protocol}://ip-api.com/json/${ipAddress}?fields=status,message,country,countryCode,regionName,city,timezone`, {
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
     const data = await response.json();
     
     if (data.status === "success") {
@@ -163,10 +283,36 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
         country: data.country || undefined,
         city: data.city || undefined,
         region: data.regionName || undefined,
+        countryCode: data.countryCode || undefined,
+        timezone: data.timezone || undefined,
       };
     }
   } catch (error) {
-    console.error("Error fetching location:", error);
+    console.warn("ip-api.com failed, trying fallback:", error);
+    
+    // Fallback to ipapi.co (also free, different provider)
+    try {
+      const response = await fetch(`https://ipapi.co/${ipAddress}/json/`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.country_name) {
+          return {
+            country: data.country_name || undefined,
+            city: data.city || undefined,
+            region: data.region || undefined,
+            countryCode: data.country_code || undefined,
+            timezone: data.timezone || undefined,
+          };
+        }
+      }
+    } catch (fallbackError) {
+      console.warn("Fallback location API also failed:", fallbackError);
+    }
   }
 
   return {};

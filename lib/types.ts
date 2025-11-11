@@ -39,12 +39,17 @@ export interface Click {
   country?: string;
   city?: string;
   region?: string;
+  countryCode?: string;
+  timezone?: string;
   platform?: string; // iOS, Android, Windows, macOS, Linux
   device?: string; // mobile, desktop, tablet
   deviceType?: string; // iPhone, iPad, Samsung, etc.
   browser?: string; // Chrome, Safari, Firefox, etc.
   os?: string; // Operating system
   socialSource?: string; // facebook, twitter, instagram, etc.
+  utmSource?: string; // UTM source parameter
+  utmMedium?: string; // UTM medium parameter
+  utmCampaign?: string; // UTM campaign parameter
   isBot?: boolean;
 }
 
