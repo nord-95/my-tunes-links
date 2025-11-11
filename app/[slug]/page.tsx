@@ -93,27 +93,29 @@ async function trackClick(linkId: string, headersList: Headers) {
     const { addDoc, collection, doc, updateDoc, getDoc } = await import("firebase/firestore");
     const { db } = await import("@/lib/firebase");
 
-    // Create click document
-    const clickData = {
+    // Create click document - Firestore doesn't allow undefined values, so we filter them out
+    const clickDataRaw: Record<string, any> = {
       linkId,
       timestamp: new Date(),
-      userAgent: userAgent || undefined,
-      referrer: referer || undefined,
-      ipAddress: ipAddress || undefined,
-      country: location.country || undefined,
-      city: location.city || undefined,
-      region: location.region || undefined,
-      platform: deviceInfo.platform || undefined,
-      device: deviceInfo.device || undefined,
-      deviceType: deviceInfo.deviceType || undefined,
-      browser: deviceInfo.browser || undefined,
-      os: deviceInfo.os || undefined,
-      socialSource: socialSource || undefined,
       isBot: deviceInfo.isBot || false,
     };
 
-    console.log("Creating click with data:", { linkId, timestamp: clickData.timestamp });
-    const clickRef = await addDoc(collection(db, "clicks"), clickData);
+    // Only add fields that have actual values (not undefined)
+    if (userAgent) clickDataRaw.userAgent = userAgent;
+    if (referer) clickDataRaw.referrer = referer;
+    if (ipAddress) clickDataRaw.ipAddress = ipAddress;
+    if (location.country) clickDataRaw.country = location.country;
+    if (location.city) clickDataRaw.city = location.city;
+    if (location.region) clickDataRaw.region = location.region;
+    if (deviceInfo.platform) clickDataRaw.platform = deviceInfo.platform;
+    if (deviceInfo.device) clickDataRaw.device = deviceInfo.device;
+    if (deviceInfo.deviceType) clickDataRaw.deviceType = deviceInfo.deviceType;
+    if (deviceInfo.browser) clickDataRaw.browser = deviceInfo.browser;
+    if (deviceInfo.os) clickDataRaw.os = deviceInfo.os;
+    if (socialSource) clickDataRaw.socialSource = socialSource;
+
+    console.log("Creating click with data:", { linkId, timestamp: clickDataRaw.timestamp, fieldCount: Object.keys(clickDataRaw).length });
+    const clickRef = await addDoc(collection(db, "clicks"), clickDataRaw);
     console.log("Click created successfully with ID:", clickRef.id);
 
     // Update link click count
