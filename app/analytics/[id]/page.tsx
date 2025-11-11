@@ -268,33 +268,123 @@ export default function AnalyticsPage() {
     });
 
     try {
-      const response = await fetch("/api/update-locations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          linkId: linkId,
-          batchSize: 50,
-        }),
+      // Get the current user
+      const { auth } = await import("@/lib/firebase");
+      const { onAuthStateChanged } = await import("firebase/auth");
+      
+      // Wait for user authentication
+      const user = await new Promise<any>((resolve) => {
+        if (auth.currentUser) {
+          resolve(auth.currentUser);
+        } else {
+          const unsubscribe = onAuthStateChanged(auth, (user) => {
+            unsubscribe();
+            resolve(user);
+          });
+        }
       });
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (!user) {
         toast({
-          title: "Locations updated!",
-          description: `Successfully updated ${data.updated} clicks with location data.`,
-        });
-        // The real-time listener will automatically update the UI
-      } else {
-        toast({
-          title: "Update failed",
-          description: data.error || "Failed to update locations",
+          title: "Authentication required",
+          description: "Please sign in to update locations",
           variant: "destructive",
         });
+        setUpdatingLocations(false);
+        return;
       }
+
+      // Update locations client-side using authenticated context
+      const { collection, query, where, getDocs, updateDoc, doc, limit } = await import("firebase/firestore");
+      const { getLocationFromIP } = await import("@/lib/utils");
+      
+      const clicksRef = collection(db, "clicks");
+      const q = query(
+        clicksRef,
+        where("linkId", "==", linkId),
+        limit(100) // Process up to 100 at a time
+      );
+
+      const snapshot = await getDocs(q);
+      const clicksToUpdate: Array<{ id: string; ipAddress: string }> = [];
+
+      // Filter clicks that have IP but don't have location data
+      snapshot.forEach((docSnapshot) => {
+        const data = docSnapshot.data();
+        const ipAddress = data.ipAddress;
+        
+        if (ipAddress && ipAddress.trim() && (!data.country && !data.countryCode)) {
+          clicksToUpdate.push({
+            id: docSnapshot.id,
+            ipAddress: ipAddress.trim(),
+          });
+        }
+      });
+
+      if (clicksToUpdate.length === 0) {
+        toast({
+          title: "No updates needed",
+          description: "All clicks already have location data.",
+        });
+        setUpdatingLocations(false);
+        return;
+      }
+
+      // Process in smaller batches to avoid overwhelming the browser
+      const batchSize = 10;
+      let updated = 0;
+      let failed = 0;
+
+      for (let i = 0; i < clicksToUpdate.length; i += batchSize) {
+        const batch = clicksToUpdate.slice(i, i + batchSize);
+        
+        const results = await Promise.allSettled(
+          batch.map(async (click) => {
+            try {
+              const location = await getLocationFromIP(click.ipAddress);
+              
+              if (location.country || location.countryCode) {
+                const clickRef = doc(db, "clicks", click.id);
+                const updateData: Record<string, any> = {};
+                
+                if (location.country) updateData.country = location.country;
+                if (location.city) updateData.city = location.city;
+                if (location.region) updateData.region = location.region;
+                if (location.countryCode) updateData.countryCode = location.countryCode;
+                if (location.timezone) updateData.timezone = location.timezone;
+
+                await updateDoc(clickRef, updateData);
+                return { success: true };
+              } else {
+                return { success: false, reason: "No location data" };
+              }
+            } catch (error: any) {
+              console.error(`Error updating click ${click.id}:`, error);
+              return { success: false, error: error.message };
+            }
+          })
+        );
+
+        results.forEach((result) => {
+          if (result.status === "fulfilled" && result.value.success) {
+            updated++;
+          } else {
+            failed++;
+          }
+        });
+
+        // Small delay between batches to avoid rate limiting
+        if (i + batchSize < clicksToUpdate.length) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+
+      toast({
+        title: "Locations updated!",
+        description: `Successfully updated ${updated} clicks. ${failed > 0 ? `${failed} failed.` : ""}`,
+      });
     } catch (error: any) {
+      console.error("Error updating locations:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to update locations",

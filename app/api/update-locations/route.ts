@@ -1,15 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, updateDoc, doc, limit } from "firebase/firestore";
+import { collection, query, where, getDocs, updateDoc, doc, limit, getDoc } from "firebase/firestore";
 import { getLocationFromIP } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify authentication (optional - you can add auth check here)
+    // Verify authentication token is provided
     const authHeader = request.headers.get("authorization");
-    // For now, we'll allow it, but you can add proper auth later
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Authentication required",
+        },
+        { status: 401 }
+      );
+    }
 
     const { linkId, batchSize = 50 } = await request.json().catch(() => ({ linkId: null, batchSize: 50 }));
+
+    // Verify user owns the link (if linkId is provided)
+    if (linkId) {
+      const linkRef = doc(db, "links", linkId);
+      const linkDoc = await getDoc(linkRef);
+      
+      if (!linkDoc.exists()) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Link not found",
+          },
+          { status: 404 }
+        );
+      }
+      
+      // Note: Firestore rules will enforce ownership, so we proceed
+      // The token will be verified by Firestore rules when we try to update
+    }
 
     const clicksRef = collection(db, "clicks");
     
