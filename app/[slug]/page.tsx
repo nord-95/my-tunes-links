@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import LinkRedirect from "@/components/link-redirect";
+import { Link } from "@/lib/types";
 
-async function getLink(slug: string) {
+async function getLink(slug: string): Promise<Link | null> {
   try {
     const { db } = await import("@/lib/firebase");
     const { collection, query, where, getDocs, limit } = await import("firebase/firestore");
@@ -15,11 +16,21 @@ async function getLink(slug: string) {
     }
 
     const doc = snapshot.docs[0];
+    const data = doc.data();
+    
     return {
       id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+      userId: data.userId,
+      slug: data.slug,
+      title: data.title,
+      description: data.description,
+      destinationUrl: data.destinationUrl,
+      musicLinks: data.musicLinks,
+      thumbnailUrl: data.thumbnailUrl,
+      clicks: data.clicks || 0,
+      isActive: data.isActive !== undefined ? data.isActive : true,
+      createdAt: data.createdAt?.toDate() || new Date(),
+      updatedAt: data.updatedAt?.toDate() || new Date(),
     };
   } catch (error) {
     console.error("Error fetching link:", error);
