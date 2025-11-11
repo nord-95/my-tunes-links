@@ -15,7 +15,7 @@ export default function NotFound() {
             The link you&apos;re looking for doesn&apos;t exist or has been deactivated.
           </p>
           <Link href="/">
-            <Button>Go to Dashboard</Button>
+            <Button>Go Home</Button>
           </Link>
         </CardContent>
       </Card>

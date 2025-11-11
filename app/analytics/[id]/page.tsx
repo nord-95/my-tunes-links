@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
-import { db } from "@/lib/firebase";
+import { useParams, useRouter } from "next/navigation";
+import { auth, db } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import { collection, query, where, getDocs, orderBy, onSnapshot } from "firebase/firestore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,9 @@ import { useToast } from "@/components/ui/use-toast";
 
 export default function AnalyticsPage() {
   const params = useParams();
+  const router = useRouter();
   const linkId = params.id as string;
+  const [user, setUser] = useState<any>(null);
   const [link, setLink] = useState<LinkType | null>(null);
   const [clicks, setClicks] = useState<Click[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +43,19 @@ export default function AnalyticsPage() {
   }, [linkId]);
 
   useEffect(() => {
+    // Require authentication
+    const unsubAuth = onAuthStateChanged(auth, (currentUser) => {
+      if (!currentUser) {
+        router.push("/auth");
+        return;
+      }
+      setUser(currentUser);
+    });
+    return () => unsubAuth();
+  }, [router]);
+
+  useEffect(() => {
+    if (!user) return;
     loadLink();
     setLoading(true);
 
@@ -127,7 +143,7 @@ export default function AnalyticsPage() {
         unsubscribe();
       }
     };
-  }, [linkId, loadLink]);
+  }, [linkId, loadLink, user]);
 
   const getChartData = () => {
     const dateMap = new Map<string, number>();

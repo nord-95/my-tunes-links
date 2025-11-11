@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import LinkRedirect from "@/components/link-redirect";
@@ -409,6 +409,19 @@ export default async function SlugPage({
   const link = await getLink(slug);
 
   if (!link) {
+    // Try app-level settings for 404 redirect
+    try {
+      const { db } = await import("@/lib/firebase");
+      const { doc, getDoc } = await import("firebase/firestore");
+      const settingsRef = doc(db, "settings", "app");
+      const settingsSnap = await getDoc(settingsRef);
+      const redirectUrl = settingsSnap.exists() ? settingsSnap.data()?.notFoundRedirectUrl : null;
+      if (redirectUrl && typeof redirectUrl === "string" && redirectUrl.trim().length > 0) {
+        redirect(redirectUrl.trim());
+      }
+    } catch (e) {
+      // fall through to notFound
+    }
     notFound();
   }
 
