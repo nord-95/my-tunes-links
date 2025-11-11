@@ -83,6 +83,7 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
     let utmMedium: string | undefined;
     let utmCampaign: string | undefined;
     let utmContent: string | undefined;
+    let utmTerm: string | undefined;
     let fbclid: string | undefined;
     
     // Parse current URL for UTM and tracking parameters
@@ -94,6 +95,7 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
         utmMedium = currentUrlParams.get("utm_medium") || undefined;
         utmCampaign = currentUrlParams.get("utm_campaign") || undefined;
         utmContent = currentUrlParams.get("utm_content") || undefined;
+        utmTerm = currentUrlParams.get("utm_term") || undefined;
         fbclid = currentUrlParams.get("fbclid") || undefined;
       } catch (e) {
         console.warn("Failed to parse current URL:", e);
@@ -108,6 +110,8 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
         if (!utmSource) utmSource = refererParams.get("utm_source") || undefined;
         if (!utmMedium) utmMedium = refererParams.get("utm_medium") || undefined;
         if (!utmCampaign) utmCampaign = refererParams.get("utm_campaign") || undefined;
+        if (!utmContent) utmContent = refererParams.get("utm_content") || undefined;
+        if (!utmTerm) utmTerm = refererParams.get("utm_term") || undefined;
       } catch (e) {
         // Invalid URL, skip UTM parsing
       }
@@ -149,6 +153,7 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
       utmMedium,
       utmCampaign,
       utmContent,
+      utmTerm,
       socialSource,
       referer: referer ? (() => {
         try {
@@ -201,6 +206,7 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
     if (utmMedium) clickDataRaw.utmMedium = utmMedium;
     if (utmCampaign) clickDataRaw.utmCampaign = utmCampaign;
     if (utmContent) clickDataRaw.utmContent = utmContent;
+    if (utmTerm) clickDataRaw.utmTerm = utmTerm;
     if (fbclid) clickDataRaw.fbclid = fbclid; // Store fbclid for Facebook attribution
 
     console.log("Creating click with data:", { linkId, timestamp: clickDataRaw.timestamp, fieldCount: Object.keys(clickDataRaw).length });

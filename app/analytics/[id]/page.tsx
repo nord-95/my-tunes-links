@@ -530,6 +530,7 @@ export default function AnalyticsPage() {
                           {click.utmMedium && ` (${click.utmMedium})`}
                           {click.utmCampaign && ` - ${click.utmCampaign}`}
                           {click.utmContent && ` [${click.utmContent}]`}
+                          {click.utmTerm && ` | Term: ${click.utmTerm}`}
                         </span>
                       )}
                       {click.fbclid && !click.utmSource && (
