@@ -363,14 +363,18 @@ export async function generateMetadata({
   const twitterImage = link.twitterImage || ogImage;
   const twitterCard = link.twitterCard || (ogImage ? "summary_large_image" : "summary");
 
+  // Determine an icon to always output (force display)
+  const iconUrl = (link.siteIconUrl && String(link.siteIconUrl)) || (link.thumbnailUrl && String(link.thumbnailUrl)) || "/favicon.ico";
+
   const metadata: Metadata = {
     title: ogTitle,
     description: ogDescription,
-    ...(link.siteIconUrl && {
-      icons: {
-        icon: [{ url: link.siteIconUrl as string, type: "image/png" }],
-      },
-    }),
+    // Always emit icons so crawlers/browsers see a favicon
+    icons: {
+      icon: [{ url: iconUrl }],
+      shortcut: [iconUrl],
+      apple: [iconUrl],
+    },
     openGraph: {
       title: ogTitle,
       description: ogDescription,
