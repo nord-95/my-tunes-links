@@ -38,6 +38,14 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
     
+    // App settings (global)
+    // Public read so 404 redirect works for anonymous users
+    // Writes allowed for authenticated users (adjust to restrict to admins if needed)
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    
     // Clicks collection - for tracking link clicks
     match /clicks/{clickId} {
       // Read: Users can only read clicks for their own links, or allow public read for analytics
