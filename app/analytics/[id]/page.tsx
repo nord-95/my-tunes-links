@@ -41,35 +41,88 @@ export default function AnalyticsPage() {
 
     // Set up real-time listener for clicks
     const clicksRef = collection(db, "clicks");
-    const q = query(
-      clicksRef,
-      where("linkId", "==", linkId),
-      orderBy("timestamp", "desc")
-    );
+    let unsubscribe: (() => void) | null = null;
 
-    // Real-time listener - automatically updates when new clicks are added
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const clicksData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          timestamp: doc.data().timestamp?.toDate() || new Date(),
-        })) as Click[];
-        setClicks(clicksData);
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Error listening to clicks:", error);
-        if (error.code === "failed-precondition") {
-          console.error("Missing Firestore index. Check the error message for a link to create it.");
-        }
+    const setupListener = () => {
+      try {
+        const q = query(
+          clicksRef,
+          where("linkId", "==", linkId),
+          orderBy("timestamp", "desc")
+        );
+
+        // Real-time listener - automatically updates when new clicks are added
+        unsubscribe = onSnapshot(
+          q,
+          (snapshot) => {
+            const clicksData = snapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+              timestamp: doc.data().timestamp?.toDate() || new Date(),
+            })) as Click[];
+            console.log(`✅ Loaded ${clicksData.length} clicks for link ${linkId}`);
+            setClicks(clicksData);
+            setLoading(false);
+          },
+          async (error) => {
+            console.error("❌ Error listening to clicks:", error);
+            if (error.code === "failed-precondition") {
+              console.warn("⚠️ Index missing, trying fallback query without orderBy");
+              // Fallback: query without orderBy
+              try {
+                const fallbackQuery = query(
+                  clicksRef,
+                  where("linkId", "==", linkId)
+                );
+                const fallbackSnapshot = await getDocs(fallbackQuery);
+                const clicksData = fallbackSnapshot.docs.map((doc) => ({
+                  id: doc.id,
+                  ...doc.data(),
+                  timestamp: doc.data().timestamp?.toDate() || new Date(),
+                })) as Click[];
+                // Sort client-side
+                clicksData.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+                console.log(`✅ Loaded ${clicksData.length} clicks (fallback query)`);
+                setClicks(clicksData);
+                setLoading(false);
+                
+                // Set up listener without orderBy
+                unsubscribe = onSnapshot(
+                  fallbackQuery,
+                  (snapshot) => {
+                    const data = snapshot.docs.map((doc) => ({
+                      id: doc.id,
+                      ...doc.data(),
+                      timestamp: doc.data().timestamp?.toDate() || new Date(),
+                    })) as Click[];
+                    data.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+                    setClicks(data);
+                  },
+                  (err) => console.error("Fallback listener error:", err)
+                );
+              } catch (fallbackError) {
+                console.error("❌ Fallback query also failed:", fallbackError);
+                setLoading(false);
+              }
+            } else {
+              setLoading(false);
+            }
+          }
+        );
+      } catch (error) {
+        console.error("❌ Error setting up click listener:", error);
         setLoading(false);
       }
-    );
+    };
+
+    setupListener();
 
     // Cleanup listener on unmount
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [linkId, loadLink]);
 
   const getChartData = () => {
