@@ -29,6 +29,16 @@ const linkSchema = z.object({
   internalUtmCampaign: z.string().optional(),
   internalUtmContent: z.string().optional(),
   internalUtmTerm: z.string().optional(),
+  // Open Graph / Social Media Metadata
+  ogTitle: z.string().optional(),
+  ogDescription: z.string().optional(),
+  ogImage: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  ogType: z.string().optional(),
+  ogSiteName: z.string().optional(),
+  twitterCard: z.string().optional(),
+  twitterTitle: z.string().optional(),
+  twitterDescription: z.string().optional(),
+  twitterImage: z.string().url("Must be a valid URL").optional().or(z.literal("")),
 });
 
 type LinkFormData = z.infer<typeof linkSchema>;
@@ -85,6 +95,15 @@ export default function LinkForm({ onSuccess, onCancel, initialData }: LinkFormP
       internalUtmCampaign: initialData.internalUtmCampaign || "",
       internalUtmContent: initialData.internalUtmContent || "",
       internalUtmTerm: initialData.internalUtmTerm || "",
+      ogTitle: initialData.ogTitle || "",
+      ogDescription: initialData.ogDescription || "",
+      ogImage: initialData.ogImage || "",
+      ogType: initialData.ogType || "",
+      ogSiteName: initialData.ogSiteName || "",
+      twitterCard: initialData.twitterCard || "",
+      twitterTitle: initialData.twitterTitle || "",
+      twitterDescription: initialData.twitterDescription || "",
+      twitterImage: initialData.twitterImage || "",
     } : {
       title: "",
       description: "",
@@ -98,6 +117,15 @@ export default function LinkForm({ onSuccess, onCancel, initialData }: LinkFormP
       internalUtmCampaign: "",
       internalUtmContent: "",
       internalUtmTerm: "",
+      ogTitle: "",
+      ogDescription: "",
+      ogImage: "",
+      ogType: "",
+      ogSiteName: "",
+      twitterCard: "",
+      twitterTitle: "",
+      twitterDescription: "",
+      twitterImage: "",
     },
   });
 
@@ -187,6 +215,35 @@ export default function LinkForm({ onSuccess, onCancel, initialData }: LinkFormP
       }
       if (data.internalUtmTerm && data.internalUtmTerm.trim()) {
         linkData.internalUtmTerm = data.internalUtmTerm.trim();
+      }
+
+      // Add Open Graph / Social Media Metadata
+      if (data.ogTitle && data.ogTitle.trim()) {
+        linkData.ogTitle = data.ogTitle.trim();
+      }
+      if (data.ogDescription && data.ogDescription.trim()) {
+        linkData.ogDescription = data.ogDescription.trim();
+      }
+      if (data.ogImage && data.ogImage.trim()) {
+        linkData.ogImage = data.ogImage.trim();
+      }
+      if (data.ogType && data.ogType.trim()) {
+        linkData.ogType = data.ogType.trim();
+      }
+      if (data.ogSiteName && data.ogSiteName.trim()) {
+        linkData.ogSiteName = data.ogSiteName.trim();
+      }
+      if (data.twitterCard && data.twitterCard.trim()) {
+        linkData.twitterCard = data.twitterCard.trim();
+      }
+      if (data.twitterTitle && data.twitterTitle.trim()) {
+        linkData.twitterTitle = data.twitterTitle.trim();
+      }
+      if (data.twitterDescription && data.twitterDescription.trim()) {
+        linkData.twitterDescription = data.twitterDescription.trim();
+      }
+      if (data.twitterImage && data.twitterImage.trim()) {
+        linkData.twitterImage = data.twitterImage.trim();
       }
 
       if (initialData) {
@@ -422,6 +479,149 @@ export default function LinkForm({ onSuccess, onCancel, initialData }: LinkFormP
               {...register("internalUtmTerm")}
               placeholder="e.g., keywords, targeting info"
             />
+          </div>
+        </div>
+      </div>
+
+      {/* Open Graph / Social Media Metadata Section */}
+      <div className="space-y-4 border-t pt-4">
+        <div>
+          <h3 className="text-lg font-semibold">Link Metadata (Open Graph)</h3>
+          <p className="text-sm text-muted-foreground">
+            These fields control how your link appears when shared on social media, messaging apps, and other platforms.
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="ogTitle">OG Title</Label>
+              <Input
+                id="ogTitle"
+                {...register("ogTitle")}
+                placeholder="Leave empty to use link title"
+              />
+              <p className="text-xs text-muted-foreground">
+                Title shown in link previews (defaults to link title)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ogType">OG Type</Label>
+              <select
+                id="ogType"
+                {...register("ogType")}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">website (default)</option>
+                <option value="website">website</option>
+                <option value="music.song">music.song</option>
+                <option value="music.album">music.album</option>
+                <option value="music.playlist">music.playlist</option>
+                <option value="article">article</option>
+                <option value="video.movie">video.movie</option>
+                <option value="video.other">video.other</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="ogDescription">OG Description</Label>
+            <textarea
+              id="ogDescription"
+              {...register("ogDescription")}
+              placeholder="Leave empty to use link description"
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <p className="text-xs text-muted-foreground">
+              Description shown in link previews (defaults to link description)
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="ogImage">OG Image URL</Label>
+              <Input
+                id="ogImage"
+                type="url"
+                {...register("ogImage")}
+                placeholder="https://example.com/image.jpg"
+              />
+              <p className="text-xs text-muted-foreground">
+                Image shown in link previews (recommended: 1200x630px). Leave empty to use thumbnail.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ogSiteName">OG Site Name</Label>
+              <Input
+                id="ogSiteName"
+                {...register("ogSiteName")}
+                placeholder="My Tunes"
+              />
+              <p className="text-xs text-muted-foreground">
+                Name of your site (defaults to "My Tunes")
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Twitter Card Section */}
+        <div className="space-y-4 border-t pt-4 mt-4">
+          <div>
+            <h4 className="text-md font-semibold">Twitter Card</h4>
+            <p className="text-sm text-muted-foreground">
+              Optional: Override Twitter-specific metadata (defaults to Open Graph values)
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="twitterCard">Twitter Card Type</Label>
+              <select
+                id="twitterCard"
+                {...register("twitterCard")}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Auto (based on image)</option>
+                <option value="summary">summary</option>
+                <option value="summary_large_image">summary_large_image</option>
+                <option value="app">app</option>
+                <option value="player">player</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="twitterTitle">Twitter Title</Label>
+              <Input
+                id="twitterTitle"
+                {...register("twitterTitle")}
+                placeholder="Leave empty to use OG title"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="twitterDescription">Twitter Description</Label>
+            <textarea
+              id="twitterDescription"
+              {...register("twitterDescription")}
+              placeholder="Leave empty to use OG description"
+              className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="twitterImage">Twitter Image URL</Label>
+            <Input
+              id="twitterImage"
+              type="url"
+              {...register("twitterImage")}
+              placeholder="https://example.com/twitter-image.jpg"
+            />
+            <p className="text-xs text-muted-foreground">
+              Twitter-specific image (defaults to OG image)
+            </p>
           </div>
         </div>
       </div>

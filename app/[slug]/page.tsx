@@ -59,6 +59,16 @@ async function getLink(slug: string): Promise<Link | null> {
       internalUtmCampaign: data.internalUtmCampaign,
       internalUtmContent: data.internalUtmContent,
       internalUtmTerm: data.internalUtmTerm,
+      // Open Graph / Social Media Metadata
+      ogTitle: data.ogTitle,
+      ogDescription: data.ogDescription,
+      ogImage: data.ogImage,
+      ogType: data.ogType,
+      ogSiteName: data.ogSiteName,
+      twitterCard: data.twitterCard,
+      twitterTitle: data.twitterTitle,
+      twitterDescription: data.twitterDescription,
+      twitterImage: data.twitterImage,
     };
   } catch (error: any) {
     console.error("Error fetching link:", error);
@@ -341,6 +351,77 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
     });
     // Don't throw - we don't want to block the redirect
   }
+}
+
+// Generate metadata for Open Graph and social media previews
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const link = await getLink(slug);
+
+  if (!link) {
+    return {
+      title: "Link Not Found",
+      description: "The link you're looking for doesn't exist or has been deactivated.",
+    };
+  }
+
+  // Get the current URL for og:url
+  const headersList = await headers();
+  const host = headersList.get("host") || headersList.get("x-forwarded-host") || "";
+  const protocol = headersList.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+  const currentUrl = `${protocol}://${host}/${slug}`;
+
+  // Use OG metadata if available, otherwise fall back to regular fields
+  const ogTitle = link.ogTitle || link.title;
+  const ogDescription = link.ogDescription || link.description || `Click to visit ${link.destinationUrl}`;
+  const ogImage = link.ogImage || link.thumbnailUrl;
+  const ogType = link.ogType || "website";
+  const ogSiteName = link.ogSiteName || "My Tunes";
+
+  // Twitter metadata
+  const twitterTitle = link.twitterTitle || ogTitle;
+  const twitterDescription = link.twitterDescription || ogDescription;
+  const twitterImage = link.twitterImage || ogImage;
+  const twitterCard = link.twitterCard || (ogImage ? "summary_large_image" : "summary");
+
+  const metadata: Metadata = {
+    title: ogTitle,
+    description: ogDescription,
+    openGraph: {
+      title: ogTitle,
+      description: ogDescription,
+      url: currentUrl,
+      siteName: ogSiteName,
+      type: ogType as any,
+      ...(ogImage && {
+        images: [
+          {
+            url: ogImage,
+            width: 1200,
+            height: 630,
+            alt: ogTitle,
+          },
+        ],
+      }),
+    },
+    twitter: {
+      card: twitterCard as any,
+      title: twitterTitle,
+      description: twitterDescription,
+      ...(twitterImage && {
+        images: [twitterImage],
+      }),
+    },
+    alternates: {
+      canonical: currentUrl,
+    },
+  };
+
+  return metadata;
 }
 
 export default async function SlugPage({

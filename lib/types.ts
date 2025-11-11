@@ -37,6 +37,16 @@ export interface Link {
   internalUtmCampaign?: string;
   internalUtmContent?: string;
   internalUtmTerm?: string;
+  // Open Graph / Social Media Metadata
+  ogTitle?: string; // Open Graph title (defaults to title if not set)
+  ogDescription?: string; // Open Graph description (defaults to description if not set)
+  ogImage?: string; // Open Graph image URL
+  ogType?: string; // Open Graph type (e.g., "website", "music.song", "music.album")
+  ogSiteName?: string; // Site name for Open Graph
+  twitterCard?: string; // Twitter card type (e.g., "summary", "summary_large_image")
+  twitterTitle?: string; // Twitter title
+  twitterDescription?: string; // Twitter description
+  twitterImage?: string; // Twitter image URL
 }
 
 export interface Click {
