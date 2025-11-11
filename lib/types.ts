@@ -27,6 +27,16 @@ export interface Link {
   updatedAt: Date;
   clicks: number;
   isActive: boolean;
+  // Metadata fields
+  tags?: string[]; // Tags for categorizing links
+  category?: string; // Category (e.g., "Music", "Promotion", "Social")
+  notes?: string; // Internal notes about the link
+  // Internal UTM parameters (not added to URL, used for internal tracking)
+  internalUtmSource?: string;
+  internalUtmMedium?: string;
+  internalUtmCampaign?: string;
+  internalUtmContent?: string;
+  internalUtmTerm?: string;
 }
 
 export interface Click {

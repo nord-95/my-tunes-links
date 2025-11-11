@@ -19,6 +19,16 @@ const linkSchema = z.object({
   description: z.string().optional(),
   destinationUrl: z.string().url("Must be a valid URL"),
   slug: z.string().min(3, "Slug must be at least 3 characters").optional(),
+  // Metadata fields
+  tags: z.string().optional(), // Comma-separated tags
+  category: z.string().optional(),
+  notes: z.string().optional(),
+  // Internal UTM parameters
+  internalUtmSource: z.string().optional(),
+  internalUtmMedium: z.string().optional(),
+  internalUtmCampaign: z.string().optional(),
+  internalUtmContent: z.string().optional(),
+  internalUtmTerm: z.string().optional(),
 });
 
 type LinkFormData = z.infer<typeof linkSchema>;
@@ -62,11 +72,32 @@ export default function LinkForm({ onSuccess, onCancel, initialData }: LinkFormP
     watch,
   } = useForm<LinkFormData>({
     resolver: zodResolver(linkSchema),
-    defaultValues: initialData || {
+    defaultValues: initialData ? {
+      title: initialData.title || "",
+      description: initialData.description || "",
+      destinationUrl: initialData.destinationUrl || "",
+      slug: initialData.slug || "",
+      tags: initialData.tags ? initialData.tags.join(", ") : "",
+      category: initialData.category || "",
+      notes: initialData.notes || "",
+      internalUtmSource: initialData.internalUtmSource || "",
+      internalUtmMedium: initialData.internalUtmMedium || "",
+      internalUtmCampaign: initialData.internalUtmCampaign || "",
+      internalUtmContent: initialData.internalUtmContent || "",
+      internalUtmTerm: initialData.internalUtmTerm || "",
+    } : {
       title: "",
       description: "",
       destinationUrl: "",
       slug: "",
+      tags: "",
+      category: "",
+      notes: "",
+      internalUtmSource: "",
+      internalUtmMedium: "",
+      internalUtmCampaign: "",
+      internalUtmContent: "",
+      internalUtmTerm: "",
     },
   });
 
@@ -128,6 +159,34 @@ export default function LinkForm({ onSuccess, onCancel, initialData }: LinkFormP
       // Only include musicLinks if there are any (avoid undefined)
       if (musicLinks.length > 0) {
         linkData.musicLinks = musicLinks;
+      }
+
+      // Add metadata fields
+      if (data.tags && data.tags.trim()) {
+        linkData.tags = data.tags.split(",").map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
+      }
+      if (data.category && data.category.trim()) {
+        linkData.category = data.category.trim();
+      }
+      if (data.notes && data.notes.trim()) {
+        linkData.notes = data.notes.trim();
+      }
+
+      // Add internal UTM parameters
+      if (data.internalUtmSource && data.internalUtmSource.trim()) {
+        linkData.internalUtmSource = data.internalUtmSource.trim();
+      }
+      if (data.internalUtmMedium && data.internalUtmMedium.trim()) {
+        linkData.internalUtmMedium = data.internalUtmMedium.trim();
+      }
+      if (data.internalUtmCampaign && data.internalUtmCampaign.trim()) {
+        linkData.internalUtmCampaign = data.internalUtmCampaign.trim();
+      }
+      if (data.internalUtmContent && data.internalUtmContent.trim()) {
+        linkData.internalUtmContent = data.internalUtmContent.trim();
+      }
+      if (data.internalUtmTerm && data.internalUtmTerm.trim()) {
+        linkData.internalUtmTerm = data.internalUtmTerm.trim();
       }
 
       if (initialData) {
@@ -271,6 +330,99 @@ export default function LinkForm({ onSuccess, onCancel, initialData }: LinkFormP
           <Button type="button" onClick={addMusicLink}>
             <Plus className="h-4 w-4" />
           </Button>
+        </div>
+      </div>
+
+      {/* Metadata Section */}
+      <div className="space-y-4 border-t pt-4">
+        <h3 className="text-lg font-semibold">Metadata</h3>
+        
+        <div className="space-y-2">
+          <Label htmlFor="tags">Tags</Label>
+          <Input
+            id="tags"
+            {...register("tags")}
+            placeholder="music, release, promotion (comma-separated)"
+          />
+          <p className="text-xs text-muted-foreground">
+            Separate multiple tags with commas
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="category">Category</Label>
+          <Input
+            id="category"
+            {...register("category")}
+            placeholder="e.g., Music, Promotion, Social"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="notes">Internal Notes</Label>
+          <textarea
+            id="notes"
+            {...register("notes")}
+            placeholder="Internal notes about this link (not visible to users)"
+            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          />
+        </div>
+      </div>
+
+      {/* Internal UTM Parameters Section */}
+      <div className="space-y-4 border-t pt-4">
+        <div>
+          <h3 className="text-lg font-semibold">Internal UTM Parameters</h3>
+          <p className="text-sm text-muted-foreground">
+            These tags are used for internal tracking and won&apos;t be added to the URL. Useful for categorizing and filtering links.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="internalUtmSource">Internal Source</Label>
+            <Input
+              id="internalUtmSource"
+              {...register("internalUtmSource")}
+              placeholder="e.g., website, email, social"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="internalUtmMedium">Internal Medium</Label>
+            <Input
+              id="internalUtmMedium"
+              {...register("internalUtmMedium")}
+              placeholder="e.g., banner, post, newsletter"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="internalUtmCampaign">Internal Campaign</Label>
+            <Input
+              id="internalUtmCampaign"
+              {...register("internalUtmCampaign")}
+              placeholder="e.g., summer-2024, album-release"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="internalUtmContent">Internal Content</Label>
+            <Input
+              id="internalUtmContent"
+              {...register("internalUtmContent")}
+              placeholder="e.g., header, sidebar, footer"
+            />
+          </div>
+
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="internalUtmTerm">Internal Term</Label>
+            <Input
+              id="internalUtmTerm"
+              {...register("internalUtmTerm")}
+              placeholder="e.g., keywords, targeting info"
+            />
+          </div>
         </div>
       </div>
 

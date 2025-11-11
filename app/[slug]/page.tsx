@@ -49,6 +49,16 @@ async function getLink(slug: string): Promise<Link | null> {
       isActive: data.isActive !== undefined ? data.isActive : true,
       createdAt: data.createdAt?.toDate() || new Date(),
       updatedAt: data.updatedAt?.toDate() || new Date(),
+      // Metadata fields
+      tags: data.tags,
+      category: data.category,
+      notes: data.notes,
+      // Internal UTM parameters
+      internalUtmSource: data.internalUtmSource,
+      internalUtmMedium: data.internalUtmMedium,
+      internalUtmCampaign: data.internalUtmCampaign,
+      internalUtmContent: data.internalUtmContent,
+      internalUtmTerm: data.internalUtmTerm,
     };
   } catch (error: any) {
     console.error("Error fetching link:", error);
@@ -63,7 +73,7 @@ async function getLink(slug: string): Promise<Link | null> {
   }
 }
 
-async function trackClick(linkId: string, headersList: Headers, currentUrl?: string) {
+async function trackClick(linkId: string, headersList: Headers, currentUrl?: string, link?: Link | null) {
   try {
     const userAgent = headersList.get("user-agent") || "";
     const referer = headersList.get("referer") || "";
@@ -164,6 +174,26 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
         if (!utmTerm) utmTerm = refererParams.get("utm_term") || undefined;
       } catch (e) {
         // Invalid URL, skip UTM parsing
+      }
+    }
+
+    // Use internal UTM from link if URL UTM is not present
+    if (link) {
+      if (!utmSource && link.internalUtmSource) {
+        utmSource = link.internalUtmSource;
+        console.log("Using internal UTM source:", utmSource);
+      }
+      if (!utmMedium && link.internalUtmMedium) {
+        utmMedium = link.internalUtmMedium;
+      }
+      if (!utmCampaign && link.internalUtmCampaign) {
+        utmCampaign = link.internalUtmCampaign;
+      }
+      if (!utmContent && link.internalUtmContent) {
+        utmContent = link.internalUtmContent;
+      }
+      if (!utmTerm && link.internalUtmTerm) {
+        utmTerm = link.internalUtmTerm;
       }
     }
 
@@ -351,7 +381,7 @@ export default async function SlugPage({
   
   // Track click - try to save it but don't block redirect for too long
   // We'll use a timeout but still try to save in the background
-  const trackingPromise = trackClick(link.id, headersList, currentUrl);
+  const trackingPromise = trackClick(link.id, headersList, currentUrl, link);
   
   // Wait up to 2 seconds for tracking, then continue with redirect
   Promise.race([
