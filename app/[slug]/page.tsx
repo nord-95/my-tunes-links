@@ -32,9 +32,17 @@ async function trackClick(linkId: string, headersList: Headers) {
     const userAgent = headersList.get("user-agent") || "";
     const referer = headersList.get("referer") || "";
     
-    // Simple IP detection (in production, use a proper service)
+    // Get IP address
     const forwarded = headersList.get("x-forwarded-for");
-    const ipAddress = forwarded ? forwarded.split(",")[0] : headersList.get("x-real-ip") || "";
+    const ipAddress = forwarded ? forwarded.split(",")[0].trim() : headersList.get("x-real-ip") || "";
+
+    // Parse user agent for device/browser info
+    const { parseUserAgent, detectSocialSource, getLocationFromIP } = await import("@/lib/utils");
+    const deviceInfo = parseUserAgent(userAgent);
+    const socialSource = detectSocialSource(referer);
+    
+    // Get location from IP (async, but we'll do it in background)
+    const location = await getLocationFromIP(ipAddress);
 
     const { addDoc, collection, doc, updateDoc, getDoc } = await import("firebase/firestore");
     const { db } = await import("@/lib/firebase");
@@ -43,8 +51,18 @@ async function trackClick(linkId: string, headersList: Headers) {
       linkId,
       timestamp: new Date(),
       userAgent,
-      referrer: referer,
-      ipAddress,
+      referrer: referer || undefined,
+      ipAddress: ipAddress || undefined,
+      country: location.country,
+      city: location.city,
+      region: location.region,
+      platform: deviceInfo.platform,
+      device: deviceInfo.device,
+      deviceType: deviceInfo.deviceType,
+      browser: deviceInfo.browser,
+      os: deviceInfo.os,
+      socialSource: socialSource,
+      isBot: deviceInfo.isBot,
     });
 
     // Update link click count

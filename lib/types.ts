@@ -38,8 +38,14 @@ export interface Click {
   referrer?: string;
   country?: string;
   city?: string;
-  platform?: string;
-  device?: string;
+  region?: string;
+  platform?: string; // iOS, Android, Windows, macOS, Linux
+  device?: string; // mobile, desktop, tablet
+  deviceType?: string; // iPhone, iPad, Samsung, etc.
+  browser?: string; // Chrome, Safari, Firefox, etc.
+  os?: string; // Operating system
+  socialSource?: string; // facebook, twitter, instagram, etc.
+  isBot?: boolean;
 }
 
 export interface AnalyticsData {
