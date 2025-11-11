@@ -50,6 +50,12 @@ service cloud.firestore {
         && request.resource.data.linkId is string
         && request.resource.data.timestamp is timestamp
         && exists(/databases/$(database)/documents/links/$(request.resource.data.linkId));
+      
+      // Update: Allow users to update location data for their own link clicks
+      allow update: if isAuthenticated()
+        && exists(/databases/$(database)/documents/links/$(resource.data.linkId))
+        && get(/databases/$(database)/documents/links/$(resource.data.linkId)).data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['country', 'city', 'region', 'countryCode', 'timezone']);
     }
   }
 }

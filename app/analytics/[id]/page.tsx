@@ -5,9 +5,11 @@ import { useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, orderBy, onSnapshot } from "firebase/firestore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Click, Link as LinkType } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function AnalyticsPage() {
   const params = useParams();
@@ -15,6 +17,8 @@ export default function AnalyticsPage() {
   const [link, setLink] = useState<LinkType | null>(null);
   const [clicks, setClicks] = useState<Click[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingLocations, setUpdatingLocations] = useState(false);
+  const { toast } = useToast();
 
   const loadLink = useCallback(async () => {
     try {
@@ -250,13 +254,74 @@ export default function AnalyticsPage() {
   const uniqueCities = new Set(clicks.filter(c => c.city).map(c => `${c.city}, ${c.country || 'Unknown'}`)).size;
   const socialClicks = clicks.filter(c => c.socialSource).length;
   const utmClicks = clicks.filter(c => c.utmSource).length;
+  
+  // Count clicks with IP but no location
+  const clicksWithoutLocation = clicks.filter(c => c.ipAddress && !c.country && !c.countryCode).length;
+
+  const handleUpdateLocations = async () => {
+    if (updatingLocations) return;
+    
+    setUpdatingLocations(true);
+    toast({
+      title: "Updating locations...",
+      description: "Please wait while we process missing location data.",
+    });
+
+    try {
+      const response = await fetch("/api/update-locations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          linkId: linkId,
+          batchSize: 50,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Locations updated!",
+          description: `Successfully updated ${data.updated} clicks with location data.`,
+        });
+        // The real-time listener will automatically update the UI
+      } else {
+        toast({
+          title: "Update failed",
+          description: data.error || "Failed to update locations",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update locations",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingLocations(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="container mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Analytics</h1>
-          <p className="text-muted-foreground mt-1">{link.title}</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold">Analytics</h1>
+            <p className="text-muted-foreground mt-1">{link.title}</p>
+          </div>
+          {clicksWithoutLocation > 0 && (
+            <Button
+              onClick={handleUpdateLocations}
+              disabled={updatingLocations}
+              variant="outline"
+            >
+              {updatingLocations ? "Updating..." : `Update ${clicksWithoutLocation} Missing Locations`}
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
