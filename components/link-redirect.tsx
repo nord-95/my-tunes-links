@@ -12,7 +12,7 @@ interface LinkRedirectProps {
 }
 
 export default function LinkRedirect({ link }: LinkRedirectProps) {
-  const [countdown, setCountdown] = useState(2); // Reduced from 5 to 2 seconds
+  const [countdown, setCountdown] = useState(5); // 5 second countdown
   const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
