@@ -117,24 +117,30 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
     const { parseUserAgent, detectSocialSource, getLocationFromIP } = await import("@/lib/utils");
     const deviceInfo = parseUserAgent(userAgent);
     
-    // Detect social source - prioritize fbclid, then UTM, then referrer
+    // Detect social source - check referrer first (to distinguish Facebook vs Instagram when both have fbclid)
+    // Priority: referrer > UTM > fbclid (as fallback)
     let socialSource: string | undefined;
-    if (fbclid) {
-      // fbclid indicates Facebook
-      socialSource = "Facebook";
-      console.log("✅ Detected Facebook via fbclid");
-    } else if (utmSource) {
-      // Check if UTM source indicates a social platform
-      socialSource = detectSocialSource("", currentUrlParams);
-      if (socialSource) {
-        console.log(`✅ Detected social source via UTM: ${socialSource} (utm_source=${utmSource})`);
-      }
-    } else {
-      // Fall back to referrer detection
+    
+    // First, check referrer to distinguish between Facebook and Instagram (both use fbclid)
+    if (referer) {
       socialSource = detectSocialSource(referer, currentUrlParams);
       if (socialSource) {
         console.log(`✅ Detected social source via referrer: ${socialSource}`);
       }
+    }
+    
+    // If no referrer match, check UTM parameters
+    if (!socialSource && utmSource) {
+      socialSource = detectSocialSource("", currentUrlParams);
+      if (socialSource) {
+        console.log(`✅ Detected social source via UTM: ${socialSource} (utm_source=${utmSource})`);
+      }
+    }
+    
+    // If still no match and fbclid is present, assume Facebook (but only as last resort)
+    if (!socialSource && fbclid) {
+      socialSource = "Facebook";
+      console.log("✅ Detected Facebook via fbclid (no referrer/UTM match)");
     }
     
     console.log("Tracking data:", {

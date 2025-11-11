@@ -215,9 +215,14 @@ export function detectSocialSource(referrer: string, urlParams?: URLSearchParams
       return socialSources[hostname];
     }
 
-    // Check if hostname contains any social domain
-    for (const [domain, source] of Object.entries(socialSources)) {
-      if (hostname.includes(domain.replace("www.", ""))) {
+    // Check if hostname contains any social domain (prioritize more specific matches)
+    // Sort by domain length (longer = more specific) to match Instagram before generic "instagram"
+    const sortedDomains = Object.entries(socialSources).sort((a, b) => b[0].length - a[0].length);
+    
+    for (const [domain, source] of sortedDomains) {
+      const domainToMatch = domain.replace("www.", "");
+      // Match if hostname contains the domain (for subdomains like l.instagram.com)
+      if (hostname.includes(domainToMatch)) {
         return source;
       }
     }
