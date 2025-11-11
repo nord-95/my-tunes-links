@@ -77,29 +77,42 @@ async function trackClick(linkId: string, headersList: Headers) {
     const deviceInfo = parseUserAgent(userAgent);
     const socialSource = detectSocialSource(referer);
     
-    // Get location from IP (async, but we'll do it in background)
-    const location = await getLocationFromIP(ipAddress);
+    // Get location from IP (with timeout to avoid blocking)
+    let location = {};
+    try {
+      const locationPromise = getLocationFromIP(ipAddress);
+      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({}), 2000)); // 2 second timeout
+      location = await Promise.race([locationPromise, timeoutPromise]);
+    } catch (locationError) {
+      console.error("Location fetch failed (non-critical):", locationError);
+      // Continue without location data
+    }
 
     const { addDoc, collection, doc, updateDoc, getDoc } = await import("firebase/firestore");
     const { db } = await import("@/lib/firebase");
 
-    await addDoc(collection(db, "clicks"), {
+    // Create click document
+    const clickData = {
       linkId,
       timestamp: new Date(),
-      userAgent,
+      userAgent: userAgent || undefined,
       referrer: referer || undefined,
       ipAddress: ipAddress || undefined,
-      country: location.country,
-      city: location.city,
-      region: location.region,
-      platform: deviceInfo.platform,
-      device: deviceInfo.device,
-      deviceType: deviceInfo.deviceType,
-      browser: deviceInfo.browser,
-      os: deviceInfo.os,
-      socialSource: socialSource,
-      isBot: deviceInfo.isBot,
-    });
+      country: location.country || undefined,
+      city: location.city || undefined,
+      region: location.region || undefined,
+      platform: deviceInfo.platform || undefined,
+      device: deviceInfo.device || undefined,
+      deviceType: deviceInfo.deviceType || undefined,
+      browser: deviceInfo.browser || undefined,
+      os: deviceInfo.os || undefined,
+      socialSource: socialSource || undefined,
+      isBot: deviceInfo.isBot || false,
+    };
+
+    console.log("Creating click with data:", { linkId, ...clickData });
+    await addDoc(collection(db, "clicks"), clickData);
+    console.log("Click created successfully");
 
     // Update link click count
     const linkRef = doc(db, "links", linkId);
@@ -108,10 +121,18 @@ async function trackClick(linkId: string, headersList: Headers) {
       const currentClicks = linkDoc.data()?.clicks || 0;
       await updateDoc(linkRef, {
         clicks: currentClicks + 1,
+        updatedAt: new Date(),
       });
+      console.log("Link click count updated:", currentClicks + 1);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error tracking click:", error);
+    console.error("Error details:", {
+      code: error.code,
+      message: error.message,
+      stack: error.stack,
+    });
+    // Don't throw - we don't want to block the redirect
   }
 }
 
@@ -128,9 +149,12 @@ export default async function SlugPage({
   }
 
   const headersList = await headers();
-  // Don't await tracking - do it in background to avoid blocking redirect
-  trackClick(link.id, headersList).catch((error) => {
-    console.error("Error tracking click:", error);
+  // Track click - we'll await it briefly but with a timeout to not block too long
+  Promise.race([
+    trackClick(link.id, headersList),
+    new Promise((resolve) => setTimeout(resolve, 3000)), // Max 3 seconds
+  ]).catch((error) => {
+    console.error("Error in trackClick promise:", error);
   });
 
   return <LinkRedirect link={link} />;
