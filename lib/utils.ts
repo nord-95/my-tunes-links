@@ -267,62 +267,192 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
       ipAddress.startsWith("127.") || 
       ipAddress.startsWith("192.168.") ||
       ipAddress.startsWith("10.") ||
-      ipAddress.startsWith("172.")) {
+      ipAddress.startsWith("172.16.") ||
+      ipAddress.startsWith("172.17.") ||
+      ipAddress.startsWith("172.18.") ||
+      ipAddress.startsWith("172.19.") ||
+      ipAddress.startsWith("172.20.") ||
+      ipAddress.startsWith("172.21.") ||
+      ipAddress.startsWith("172.22.") ||
+      ipAddress.startsWith("172.23.") ||
+      ipAddress.startsWith("172.24.") ||
+      ipAddress.startsWith("172.25.") ||
+      ipAddress.startsWith("172.26.") ||
+      ipAddress.startsWith("172.27.") ||
+      ipAddress.startsWith("172.28.") ||
+      ipAddress.startsWith("172.29.") ||
+      ipAddress.startsWith("172.30.") ||
+      ipAddress.startsWith("172.31.") ||
+      ipAddress === "::1" ||
+      ipAddress.startsWith("fe80:")) {
     return {};
   }
 
-  // Try ip-api.com first (free, reliable)
-  try {
-    const protocol = typeof window === "undefined" && process.env.NODE_ENV === "production" ? "https" : "http";
-    const response = await fetch(`${protocol}://ip-api.com/json/${ipAddress}?fields=status,message,country,countryCode,regionName,city,timezone`, {
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    if (data.status === "success") {
-      return {
-        country: data.country || undefined,
-        city: data.city || undefined,
-        region: data.regionName || undefined,
-        countryCode: data.countryCode || undefined,
-        timezone: data.timezone || undefined,
-      };
-    }
-  } catch (error) {
-    console.warn("ip-api.com failed, trying fallback:", error);
-    
-    // Fallback to ipapi.co (also free, different provider)
-    try {
-      const response = await fetch(`https://ipapi.co/${ipAddress}/json/`, {
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
-      
-      if (response.ok) {
+  // Clean IP address (remove port if present)
+  const cleanIP = ipAddress.split(':')[0].trim();
+
+  // Try multiple services with timeout and retries
+  const services = [
+    // Service 1: ip-api.com (free, reliable, no API key needed)
+    async () => {
+      try {
+        const protocol = typeof window === "undefined" && process.env.NODE_ENV === "production" ? "https" : "http";
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        const response = await fetch(`${protocol}://ip-api.com/json/${cleanIP}?fields=status,message,country,countryCode,regionName,city,timezone`, {
+          headers: {
+            'Accept': 'application/json',
+          },
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
-        if (data.country_name) {
+        
+        if (data.status === "success") {
           return {
-            country: data.country_name || undefined,
+            country: data.country || undefined,
             city: data.city || undefined,
-            region: data.region || undefined,
-            countryCode: data.country_code || undefined,
+            region: data.regionName || undefined,
+            countryCode: data.countryCode || undefined,
             timezone: data.timezone || undefined,
           };
         }
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          throw error;
+        }
       }
-    } catch (fallbackError) {
-      console.warn("Fallback location API also failed:", fallbackError);
+      return null;
+    },
+    
+    // Service 2: ipapi.co (free tier, reliable)
+    async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        const response = await fetch(`https://ipapi.co/${cleanIP}/json/`, {
+          headers: {
+            'Accept': 'application/json',
+          },
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.country_name && !data.error) {
+            return {
+              country: data.country_name || undefined,
+              city: data.city || undefined,
+              region: data.region || undefined,
+              countryCode: data.country_code || undefined,
+              timezone: data.timezone || undefined,
+            };
+          }
+        }
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          throw error;
+        }
+      }
+      return null;
+    },
+    
+    // Service 3: ip-api.io (free, alternative)
+    async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        const response = await fetch(`https://ip-api.io/json/${cleanIP}`, {
+          headers: {
+            'Accept': 'application/json',
+          },
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.country_name) {
+            return {
+              country: data.country_name || undefined,
+              city: data.city || undefined,
+              region: data.region_name || undefined,
+              countryCode: data.country_code || undefined,
+              timezone: data.time_zone?.name || undefined,
+            };
+          }
+        }
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          throw error;
+        }
+      }
+      return null;
+    },
+    
+    // Service 4: geojs.io (free, simple)
+    async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        const response = await fetch(`https://get.geojs.io/v1/ip/geo/${cleanIP}.json`, {
+          headers: {
+            'Accept': 'application/json',
+          },
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.country) {
+            return {
+              country: data.country || undefined,
+              city: data.city || undefined,
+              region: data.region || undefined,
+              countryCode: data.country_code || undefined,
+              timezone: data.timezone || undefined,
+            };
+          }
+        }
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          throw error;
+        }
+      }
+      return null;
+    },
+  ];
+
+  // Try each service in sequence until one succeeds
+  for (const service of services) {
+    try {
+      const result = await service();
+      if (result && (result.country || result.countryCode)) {
+        console.log(`✅ Location found via ${service.name || 'geolocation service'}:`, result);
+        return result;
+      }
+    } catch (error) {
+      // Continue to next service
+      continue;
     }
   }
 
+  console.warn(`⚠️ Could not determine location for IP: ${cleanIP}`);
   return {};
 }
 

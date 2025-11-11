@@ -68,14 +68,28 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
     const userAgent = headersList.get("user-agent") || "";
     const referer = headersList.get("referer") || "";
     
-    // Get IP address - check multiple headers for better accuracy
+    // Get IP address - check multiple headers for better accuracy (Vercel, Cloudflare, etc.)
+    // Priority: x-forwarded-for (first IP is client) > x-real-ip > cf-connecting-ip > x-client-ip > x-vercel-forwarded-for
     const forwarded = headersList.get("x-forwarded-for");
-    const ipAddress = forwarded 
-      ? forwarded.split(",")[0].trim() 
-      : headersList.get("x-real-ip") || 
-        headersList.get("cf-connecting-ip") || // Cloudflare
-        headersList.get("x-client-ip") || 
-        "";
+    const vercelForwarded = headersList.get("x-vercel-forwarded-for");
+    
+    let ipAddress = "";
+    if (forwarded) {
+      // x-forwarded-for can contain multiple IPs, first one is usually the client
+      ipAddress = forwarded.split(",")[0].trim();
+    } else if (vercelForwarded) {
+      // Vercel specific header
+      ipAddress = vercelForwarded.split(",")[0].trim();
+    } else {
+      // Fallback to other headers
+      ipAddress = headersList.get("x-real-ip") || 
+                  headersList.get("cf-connecting-ip") || // Cloudflare
+                  headersList.get("x-client-ip") || 
+                  headersList.get("true-client-ip") || // Some proxies
+                  "";
+    }
+    
+    console.log("IP Address detected:", ipAddress || "none");
 
     // Parse URL parameters from CURRENT URL (the short link URL) - this is where UTM and fbclid are
     let currentUrlParams: URLSearchParams | undefined;
@@ -164,14 +178,21 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
       })() : "none",
     });
     
-    // Get location from IP (with timeout to avoid blocking)
+    // Get location from IP (with extended timeout for better accuracy)
     let location: { country?: string; city?: string; region?: string; countryCode?: string; timezone?: string } = {};
     try {
       const locationPromise = getLocationFromIP(ipAddress);
+      // Increased timeout to 4 seconds to allow multiple service attempts
       const timeoutPromise = new Promise<typeof location>((resolve) => 
-        setTimeout(() => resolve({}), 2500)
-      ); // 2.5 second timeout for better accuracy
+        setTimeout(() => resolve({}), 4000)
+      );
       location = await Promise.race([locationPromise, timeoutPromise]);
+      
+      if (location.country || location.countryCode) {
+        console.log("✅ Location data retrieved:", location);
+      } else {
+        console.warn("⚠️ No location data retrieved for IP:", ipAddress);
+      }
     } catch (locationError) {
       console.error("Location fetch failed (non-critical):", locationError);
       // Continue without location data
