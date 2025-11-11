@@ -52,9 +52,15 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/links/$(request.resource.data.linkId));
       
       // Update: Allow users to update location data for their own link clicks
+      // Check that user owns the link and only location fields are being updated
       allow update: if isAuthenticated()
+        && resource.data.linkId is string
         && exists(/databases/$(database)/documents/links/$(resource.data.linkId))
         && get(/databases/$(database)/documents/links/$(resource.data.linkId)).data.userId == request.auth.uid
+        // Ensure critical fields don't change
+        && request.resource.data.linkId == resource.data.linkId
+        && request.resource.data.timestamp == resource.data.timestamp
+        // Allow updating only location fields (check that all changed keys are location fields)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['country', 'city', 'region', 'countryCode', 'timezone']);
     }
   }

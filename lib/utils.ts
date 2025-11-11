@@ -296,14 +296,15 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
     // Service 1: ip-api.com (free, reliable, no API key needed) - PRIMARY
     async () => {
       try {
-        const protocol = typeof window === "undefined" && process.env.NODE_ENV === "production" ? "https" : "http";
+        // Always use HTTPS in browser to avoid mixed content issues
+        const protocol = typeof window !== "undefined" ? "https" : (process.env.NODE_ENV === "production" ? "https" : "http");
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 4000); // Increased timeout
         
         const response = await fetch(`${protocol}://ip-api.com/json/${cleanIP}?fields=status,message,country,countryCode,regionName,city,timezone`, {
           headers: {
             'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; LinkTracker/1.0)',
+            // Don't send User-Agent in browser to avoid CORS issues
           },
           signal: controller.signal,
         });
@@ -342,7 +343,7 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
         const response = await fetch(`https://ipapi.co/${cleanIP}/json/`, {
           headers: {
             'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; LinkTracker/1.0)',
+            // Don't send User-Agent in browser to avoid CORS issues
           },
           signal: controller.signal,
         });
@@ -378,7 +379,7 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
         const response = await fetch(`https://ip-api.io/json/${cleanIP}`, {
           headers: {
             'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; LinkTracker/1.0)',
+            // Don't send User-Agent in browser to avoid CORS issues
           },
           signal: controller.signal,
         });
@@ -414,7 +415,7 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
         const response = await fetch(`https://get.geojs.io/v1/ip/geo/${cleanIP}.json`, {
           headers: {
             'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; LinkTracker/1.0)',
+            // Don't send User-Agent - geojs.io doesn't allow it in CORS
           },
           signal: controller.signal,
         });
@@ -450,7 +451,7 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
         const response = await fetch(`https://ipwhois.app/json/${cleanIP}`, {
           headers: {
             'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; LinkTracker/1.0)',
+            // Don't send User-Agent in browser to avoid CORS issues
           },
           signal: controller.signal,
         });
@@ -485,10 +486,12 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
         const timeoutId = setTimeout(() => controller.abort(), 4000);
         
         // Try without fields parameter as fallback
-        const response = await fetch(`${protocol}://ip-api.com/json/${cleanIP}`, {
+        // Always use HTTPS in browser
+        const fallbackProtocol = typeof window !== "undefined" ? "https" : (process.env.NODE_ENV === "production" ? "https" : "http");
+        const response = await fetch(`${fallbackProtocol}://ip-api.com/json/${cleanIP}`, {
           headers: {
             'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; LinkTracker/1.0)',
+            // Don't send User-Agent in browser to avoid CORS issues
           },
           signal: controller.signal,
         });
