@@ -1,3 +1,5 @@
+Copy and paste this COMPLETE rules file into Firebase Console:
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -40,7 +42,7 @@ service cloud.firestore {
     
     // Clicks collection - for tracking link clicks
     match /clicks/{clickId} {
-      // Read: Users can only read clicks for their own links, or allow public read for analytics
+      // Read: Users can only read clicks for their own links
       allow read: if isAuthenticated() 
         && exists(/databases/$(database)/documents/links/$(resource.data.linkId))
         && get(/databases/$(database)/documents/links/$(resource.data.linkId)).data.userId == request.auth.uid;
