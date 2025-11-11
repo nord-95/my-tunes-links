@@ -72,6 +72,10 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
     // Priority: x-forwarded-for (first IP is client) > x-real-ip > cf-connecting-ip > x-client-ip > x-vercel-forwarded-for
     const forwarded = headersList.get("x-forwarded-for");
     const vercelForwarded = headersList.get("x-vercel-forwarded-for");
+    const realIp = headersList.get("x-real-ip");
+    const cfConnectingIp = headersList.get("cf-connecting-ip");
+    const clientIp = headersList.get("x-client-ip");
+    const trueClientIp = headersList.get("true-client-ip");
     
     let ipAddress = "";
     if (forwarded) {
@@ -82,14 +86,35 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
       ipAddress = vercelForwarded.split(",")[0].trim();
     } else {
       // Fallback to other headers
-      ipAddress = headersList.get("x-real-ip") || 
-                  headersList.get("cf-connecting-ip") || // Cloudflare
-                  headersList.get("x-client-ip") || 
-                  headersList.get("true-client-ip") || // Some proxies
+      ipAddress = realIp || 
+                  cfConnectingIp || // Cloudflare
+                  clientIp || 
+                  trueClientIp || // Some proxies
                   "";
     }
     
-    console.log("IP Address detected:", ipAddress || "none");
+    // Log all IP-related headers for debugging
+    let refererHostname = "none";
+    if (referer) {
+      try {
+        refererHostname = new URL(referer).hostname;
+      } catch {
+        refererHostname = referer.substring(0, 50);
+      }
+    }
+    
+    console.log("IP Detection Debug:", {
+      detectedIP: ipAddress || "none",
+      referer: refererHostname,
+      headers: {
+        "x-forwarded-for": forwarded || "none",
+        "x-vercel-forwarded-for": vercelForwarded || "none",
+        "x-real-ip": realIp || "none",
+        "cf-connecting-ip": cfConnectingIp || "none",
+        "x-client-ip": clientIp || "none",
+        "true-client-ip": trueClientIp || "none",
+      }
+    });
 
     // Parse URL parameters from CURRENT URL (the short link URL) - this is where UTM and fbclid are
     let currentUrlParams: URLSearchParams | undefined;
@@ -180,22 +205,28 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
     
     // Get location from IP (with extended timeout for better accuracy)
     let location: { country?: string; city?: string; region?: string; countryCode?: string; timezone?: string } = {};
-    try {
-      const locationPromise = getLocationFromIP(ipAddress);
-      // Increased timeout to 4 seconds to allow multiple service attempts
-      const timeoutPromise = new Promise<typeof location>((resolve) => 
-        setTimeout(() => resolve({}), 4000)
-      );
-      location = await Promise.race([locationPromise, timeoutPromise]);
-      
-      if (location.country || location.countryCode) {
-        console.log("✅ Location data retrieved:", location);
-      } else {
-        console.warn("⚠️ No location data retrieved for IP:", ipAddress);
+    
+    // Only try to get location if we have a valid IP
+    if (ipAddress && ipAddress !== "none" && ipAddress.length > 0) {
+      try {
+        const locationPromise = getLocationFromIP(ipAddress);
+        // Increased timeout to 5 seconds to allow parallel service attempts
+        const timeoutPromise = new Promise<typeof location>((resolve) => 
+          setTimeout(() => resolve({}), 5000)
+        );
+        location = await Promise.race([locationPromise, timeoutPromise]);
+        
+        if (location.country || location.countryCode) {
+          console.log("✅ Location data retrieved for IP", ipAddress, ":", location);
+        } else {
+          console.warn("⚠️ No location data retrieved for IP:", ipAddress, "- This might be a proxy/CDN IP");
+        }
+      } catch (locationError: any) {
+        console.error("Location fetch failed (non-critical) for IP", ipAddress, ":", locationError.message || locationError);
+        // Continue without location data
       }
-    } catch (locationError) {
-      console.error("Location fetch failed (non-critical):", locationError);
-      // Continue without location data
+    } else {
+      console.warn("⚠️ No valid IP address detected, skipping location lookup");
     }
 
     const { addDoc, collection, doc, updateDoc, getDoc } = await import("firebase/firestore");

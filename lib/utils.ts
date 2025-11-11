@@ -438,21 +438,40 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
     },
   ];
 
-  // Try each service in sequence until one succeeds
-  for (const service of services) {
+  // Try all services in parallel for faster results
+  const servicePromises = services.map(async (service, index) => {
     try {
       const result = await service();
       if (result && (result.country || result.countryCode)) {
-        console.log(`✅ Location found via ${service.name || 'geolocation service'}:`, result);
-        return result;
+        return { success: true, result, serviceIndex: index };
       }
-    } catch (error) {
-      // Continue to next service
-      continue;
+      return { success: false, result: null, serviceIndex: index };
+    } catch (error: any) {
+      console.warn(`Service ${index + 1} failed:`, error.message || error);
+      return { success: false, result: null, serviceIndex: index, error: error.message };
+    }
+  });
+
+  // Wait for all services, but return as soon as one succeeds
+  const results = await Promise.allSettled(servicePromises);
+  
+  // Check results in order of preference
+  for (const settledResult of results) {
+    if (settledResult.status === 'fulfilled' && settledResult.value.success) {
+      const { result } = settledResult.value;
+      console.log(`✅ Location found via service ${settledResult.value.serviceIndex + 1} for IP ${cleanIP}:`, result);
+      return result;
     }
   }
 
+  // If all failed, log detailed error info
   console.warn(`⚠️ Could not determine location for IP: ${cleanIP}`);
+  console.warn('Service results:', results.map((r, i) => 
+    r.status === 'fulfilled' 
+      ? `Service ${i + 1}: ${r.value.success ? 'success' : 'failed'}`
+      : `Service ${i + 1}: rejected`
+  ));
+  
   return {};
 }
 
