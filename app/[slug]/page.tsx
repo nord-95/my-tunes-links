@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import LinkRedirect from "@/components/link-redirect";
 import { Link } from "@/lib/types";
@@ -12,11 +12,17 @@ async function getLink(slug: string): Promise<Link | null> {
     const snapshot = await getDocs(q);
     
     if (snapshot.empty) {
+      console.log(`Link not found for slug: ${slug}`);
       return null;
     }
 
     const doc = snapshot.docs[0];
     const data = doc.data();
+    
+    if (!data.userId || !data.slug || !data.title || !data.destinationUrl) {
+      console.error("Link data is missing required fields:", data);
+      return null;
+    }
     
     return {
       id: doc.id,
@@ -93,16 +99,20 @@ async function trackClick(linkId: string, headersList: Headers) {
 export default async function SlugPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const link = await getLink(params.slug);
+  const { slug } = await params;
+  const link = await getLink(slug);
 
   if (!link) {
-    redirect("/404");
+    notFound();
   }
 
   const headersList = await headers();
-  await trackClick(link.id, headersList);
+  // Don't await tracking - do it in background to avoid blocking redirect
+  trackClick(link.id, headersList).catch((error) => {
+    console.error("Error tracking click:", error);
+  });
 
   return <LinkRedirect link={link} />;
 }
