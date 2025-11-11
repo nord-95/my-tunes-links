@@ -54,6 +54,7 @@ export interface Click {
   utmTerm?: string; // UTM term parameter (keywords)
   fbclid?: string; // Facebook click ID
   isBot?: boolean;
+  botType?: string; // Type of bot if detected (e.g., "Google Bot", "Facebook Link Preview", "Email Client")
 }
 
 export interface AnalyticsData {

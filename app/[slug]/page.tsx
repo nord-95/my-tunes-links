@@ -171,6 +171,19 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
     const { parseUserAgent, detectSocialSource, getLocationFromIP } = await import("@/lib/utils");
     const deviceInfo = parseUserAgent(userAgent);
     
+    // Additional bot detection from referrer (some services don't have obvious user agents)
+    if (!deviceInfo.isBot && referer) {
+      const refererLower = referer.toLowerCase();
+      // Check for link preview services in referrer
+      if (refererLower.includes('facebook.com') && refererLower.includes('l.php')) {
+        deviceInfo.isBot = true;
+        deviceInfo.botType = "Facebook Link Preview";
+      } else if (refererLower.includes('t.co') || refererLower.includes('twitter.com')) {
+        // Twitter link previews often come from t.co
+        // But we can't be 100% sure, so we'll rely on user agent mostly
+      }
+    }
+    
     // Detect social source - check referrer first (to distinguish Facebook vs Instagram when both have fbclid)
     // Priority: referrer > UTM > fbclid (as fallback)
     let socialSource: string | undefined;
@@ -264,6 +277,8 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
     if (deviceInfo.deviceType) clickDataRaw.deviceType = deviceInfo.deviceType;
     if (deviceInfo.browser) clickDataRaw.browser = deviceInfo.browser;
     if (deviceInfo.os) clickDataRaw.os = deviceInfo.os;
+    if (deviceInfo.isBot) clickDataRaw.isBot = deviceInfo.isBot;
+    if (deviceInfo.botType) clickDataRaw.botType = deviceInfo.botType;
     if (socialSource) clickDataRaw.socialSource = socialSource;
     if (utmSource) clickDataRaw.utmSource = utmSource;
     if (utmMedium) clickDataRaw.utmMedium = utmMedium;

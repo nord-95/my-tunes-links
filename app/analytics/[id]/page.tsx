@@ -226,6 +226,19 @@ export default function AnalyticsPage() {
       .sort((a, b) => b.count - a.count);
   };
 
+  const getBotData = () => {
+    const botMap = new Map<string, number>();
+    clicks.forEach((click) => {
+      if (click.isBot) {
+        const botType = click.botType || "Unknown Bot";
+        botMap.set(botType, (botMap.get(botType) || 0) + 1);
+      }
+    });
+    return Array.from(botMap.entries())
+      .map(([botType, count]) => ({ botType, count }))
+      .sort((a, b) => b.count - a.count);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -250,10 +263,13 @@ export default function AnalyticsPage() {
   const countryData = getCountryData();
   const cityData = getCityData();
   const utmData = getUTMData();
+  const botData = getBotData();
   const uniqueCountries = new Set(clicks.filter(c => c.country).map(c => c.country)).size;
   const uniqueCities = new Set(clicks.filter(c => c.city).map(c => `${c.city}, ${c.country || 'Unknown'}`)).size;
   const socialClicks = clicks.filter(c => c.socialSource).length;
   const utmClicks = clicks.filter(c => c.utmSource).length;
+  const botClicks = clicks.filter(c => c.isBot).length;
+  const humanClicks = clicks.length - botClicks;
   
   // Count clicks with IP but no location
   const clicksWithoutLocation = clicks.filter(c => c.ipAddress && !c.country && !c.countryCode).length;
@@ -421,6 +437,9 @@ export default function AnalyticsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{clicks.length}</p>
+              <p className="text-sm text-muted-foreground">
+                {humanClicks} human, {botClicks} bots
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -633,6 +652,25 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
           )}
+
+          {botData.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Bot Traffic</CardTitle>
+                <CardDescription>Automated systems and crawlers detected</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {botData.map((item) => (
+                    <div key={item.botType} className="flex justify-between items-center">
+                      <span className="text-sm">{item.botType}</span>
+                      <span className="text-sm font-medium">{item.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <Card>
@@ -695,7 +733,7 @@ export default function AnalyticsPage() {
                       )}
                       {click.isBot && (
                         <span className="text-xs bg-destructive text-destructive-foreground px-2 py-1 rounded">
-                          🤖 Bot
+                          🤖 {click.botType || "Bot"}
                         </span>
                       )}
                     </div>

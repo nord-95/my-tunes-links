@@ -44,12 +44,110 @@ export function parseUserAgent(userAgent: string): {
   browser: string;
   os: string;
   isBot: boolean;
+  botType?: string; // Type of bot if detected
 } {
   const ua = userAgent.toLowerCase();
   
-  // Detect bots
-  const botPatterns = /bot|crawler|spider|crawling/i;
-  const isBot = botPatterns.test(userAgent);
+  // Enhanced bot detection - check for various bot types
+  let isBot = false;
+  let botType: string | undefined = undefined;
+  
+  // Search engine crawlers
+  const searchEngineBots = [
+    { pattern: /googlebot|google-inspectiontool|mediapartners-google/i, name: "Google Bot" },
+    { pattern: /bingbot|msnbot|adidxbot/i, name: "Bing Bot" },
+    { pattern: /slurp|yahoo/i, name: "Yahoo Bot" },
+    { pattern: /duckduckbot/i, name: "DuckDuckGo Bot" },
+    { pattern: /baiduspider/i, name: "Baidu Bot" },
+    { pattern: /yandexbot|yandex/i, name: "Yandex Bot" },
+    { pattern: /sogou/i, name: "Sogou Bot" },
+    { pattern: /exabot/i, name: "Exalead Bot" },
+    { pattern: /facebot|facebookexternalhit/i, name: "Facebook Crawler" },
+    { pattern: /ia_archiver|archive\.org_bot/i, name: "Archive.org Bot" },
+  ];
+  
+  // Social media link preview services
+  const linkPreviewServices = [
+    { pattern: /facebookexternalhit|Facebot|facebook/i, name: "Facebook Link Preview" },
+    { pattern: /twitterbot|twitter/i, name: "Twitter Link Preview" },
+    { pattern: /linkedinbot|linkedin/i, name: "LinkedIn Link Preview" },
+    { pattern: /slackbot|slack-linkpreview/i, name: "Slack Link Preview" },
+    { pattern: /discordbot|discord/i, name: "Discord Link Preview" },
+    { pattern: /whatsapp|whatsappbot/i, name: "WhatsApp Link Preview" },
+    { pattern: /telegrambot|telegram/i, name: "Telegram Link Preview" },
+    { pattern: /skypebot|skype/i, name: "Skype Link Preview" },
+    { pattern: /redditbot|reddit/i, name: "Reddit Bot" },
+    { pattern: /pinterest|pinterestbot/i, name: "Pinterest Bot" },
+    { pattern: /applebot|apple/i, name: "Apple Bot" },
+    { pattern: /embedly|embedly/i, name: "Embedly" },
+    { pattern: /quora link preview/i, name: "Quora Link Preview" },
+    { pattern: /slackbot-linkpreview/i, name: "Slack Link Preview" },
+  ];
+  
+  // Email clients (often fetch links for preview)
+  const emailClients = [
+    { pattern: /microsoft office|outlook|ms-office/i, name: "Microsoft Outlook" },
+    { pattern: /thunderbird/i, name: "Mozilla Thunderbird" },
+    { pattern: /apple mail|mail\.app/i, name: "Apple Mail" },
+    { pattern: /gmail|google.*mail/i, name: "Gmail" },
+    { pattern: /yahoo.*mail|ymail/i, name: "Yahoo Mail" },
+    { pattern: /aol.*mail/i, name: "AOL Mail" },
+    { pattern: /protonmail/i, name: "ProtonMail" },
+  ];
+  
+  // Monitoring and uptime services
+  const monitoringServices = [
+    { pattern: /pingdom|uptimerobot|monitor/i, name: "Uptime Monitor" },
+    { pattern: /newrelic|datadog/i, name: "Monitoring Service" },
+    { pattern: /site24x7|statuscake/i, name: "Status Monitor" },
+    { pattern: /uptime|ping|healthcheck/i, name: "Health Check" },
+  ];
+  
+  // Security scanners
+  const securityScanners = [
+    { pattern: /nmap|masscan|zmap/i, name: "Security Scanner" },
+    { pattern: /nikto|sqlmap|w3af/i, name: "Security Scanner" },
+    { pattern: /nessus|openvas/i, name: "Vulnerability Scanner" },
+    { pattern: /acunetix|burpsuite/i, name: "Security Scanner" },
+  ];
+  
+  // Generic bot patterns
+  const genericBots = [
+    { pattern: /bot|crawler|spider|crawling|scraper/i, name: "Generic Bot" },
+    { pattern: /curl|wget|python-requests|go-http-client|java|okhttp/i, name: "HTTP Client" },
+    { pattern: /postman|insomnia|httpie/i, name: "API Client" },
+    { pattern: /headless|phantom|selenium|puppeteer|playwright/i, name: "Headless Browser" },
+  ];
+  
+  // Check in order of specificity (most specific first)
+  const allBotTypes = [
+    ...searchEngineBots,
+    ...linkPreviewServices,
+    ...emailClients,
+    ...monitoringServices,
+    ...securityScanners,
+    ...genericBots,
+  ];
+  
+  for (const bot of allBotTypes) {
+    if (bot.pattern.test(userAgent)) {
+      isBot = true;
+      botType = bot.name;
+      break; // Use first match (most specific)
+    }
+  }
+  
+  // Additional checks for empty or suspicious user agents
+  if (!userAgent || userAgent.trim().length === 0) {
+    isBot = true;
+    botType = "Empty User Agent";
+  }
+  
+  // Check for very short user agents (often bots)
+  if (userAgent.length < 10) {
+    isBot = true;
+    botType = botType || "Suspicious User Agent";
+  }
 
   // Detect device type
   let device = "desktop";
