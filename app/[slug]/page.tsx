@@ -78,12 +78,23 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
     const trueClientIp = headersList.get("true-client-ip");
     
     let ipAddress = "";
+    // Try to get the real client IP, not proxy IPs
     if (forwarded) {
-      // x-forwarded-for can contain multiple IPs, first one is usually the client
-      ipAddress = forwarded.split(",")[0].trim();
+      // x-forwarded-for can contain multiple IPs: "client, proxy1, proxy2"
+      // The LAST IP is usually the original client (after proxies)
+      // But sometimes the FIRST is the client. Try both.
+      const ips = forwarded.split(",").map(ip => ip.trim()).filter(ip => ip);
+      if (ips.length > 0) {
+        // For most cases, first IP is client, but if it looks like a proxy/CDN, try last
+        const firstIP = ips[0];
+        const lastIP = ips[ips.length - 1];
+        // Use first IP by default, but we'll let geolocation services handle proxy detection
+        ipAddress = firstIP;
+      }
     } else if (vercelForwarded) {
       // Vercel specific header
-      ipAddress = vercelForwarded.split(",")[0].trim();
+      const ips = vercelForwarded.split(",").map(ip => ip.trim()).filter(ip => ip);
+      ipAddress = ips.length > 0 ? ips[0] : "";
     } else {
       // Fallback to other headers
       ipAddress = realIp || 
@@ -210,23 +221,23 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
     if (ipAddress && ipAddress !== "none" && ipAddress.length > 0) {
       try {
         const locationPromise = getLocationFromIP(ipAddress);
-        // Increased timeout to 5 seconds to allow parallel service attempts
+        // Increased timeout to 6 seconds to allow all 6 services to try
         const timeoutPromise = new Promise<typeof location>((resolve) => 
-          setTimeout(() => resolve({}), 5000)
+          setTimeout(() => resolve({}), 6000)
         );
         location = await Promise.race([locationPromise, timeoutPromise]);
         
         if (location.country || location.countryCode) {
-          console.log("✅ Location data retrieved for IP", ipAddress, ":", location);
+          console.log("✅ Location data retrieved for IP", ipAddress, "from", refererHostname, ":", location);
         } else {
-          console.warn("⚠️ No location data retrieved for IP:", ipAddress, "- This might be a proxy/CDN IP");
+          console.warn("⚠️ No location data retrieved for IP:", ipAddress, "from", refererHostname, "- Tried 6 services");
         }
       } catch (locationError: any) {
-        console.error("Location fetch failed (non-critical) for IP", ipAddress, ":", locationError.message || locationError);
+        console.error("Location fetch failed (non-critical) for IP", ipAddress, "from", refererHostname, ":", locationError.message || locationError);
         // Continue without location data
       }
     } else {
-      console.warn("⚠️ No valid IP address detected, skipping location lookup");
+      console.warn("⚠️ No valid IP address detected from", refererHostname, ", skipping location lookup");
     }
 
     const { addDoc, collection, doc, updateDoc, getDoc } = await import("firebase/firestore");

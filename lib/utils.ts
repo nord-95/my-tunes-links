@@ -293,16 +293,17 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
 
   // Try multiple services with timeout and retries
   const services = [
-    // Service 1: ip-api.com (free, reliable, no API key needed)
+    // Service 1: ip-api.com (free, reliable, no API key needed) - PRIMARY
     async () => {
       try {
         const protocol = typeof window === "undefined" && process.env.NODE_ENV === "production" ? "https" : "http";
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const timeoutId = setTimeout(() => controller.abort(), 4000); // Increased timeout
         
         const response = await fetch(`${protocol}://ip-api.com/json/${cleanIP}?fields=status,message,country,countryCode,regionName,city,timezone`, {
           headers: {
             'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (compatible; LinkTracker/1.0)',
           },
           signal: controller.signal,
         });
@@ -326,7 +327,7 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
         }
       } catch (error: any) {
         if (error.name !== 'AbortError') {
-          throw error;
+          console.warn("ip-api.com error:", error.message);
         }
       }
       return null;
@@ -336,11 +337,12 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
     async () => {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
         
         const response = await fetch(`https://ipapi.co/${cleanIP}/json/`, {
           headers: {
             'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (compatible; LinkTracker/1.0)',
           },
           signal: controller.signal,
         });
@@ -361,7 +363,7 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
         }
       } catch (error: any) {
         if (error.name !== 'AbortError') {
-          throw error;
+          console.warn("ipapi.co error:", error.message);
         }
       }
       return null;
@@ -371,11 +373,12 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
     async () => {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
         
         const response = await fetch(`https://ip-api.io/json/${cleanIP}`, {
           headers: {
             'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (compatible; LinkTracker/1.0)',
           },
           signal: controller.signal,
         });
@@ -396,7 +399,7 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
         }
       } catch (error: any) {
         if (error.name !== 'AbortError') {
-          throw error;
+          console.warn("ip-api.io error:", error.message);
         }
       }
       return null;
@@ -406,11 +409,12 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
     async () => {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
         
         const response = await fetch(`https://get.geojs.io/v1/ip/geo/${cleanIP}.json`, {
           headers: {
             'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (compatible; LinkTracker/1.0)',
           },
           signal: controller.signal,
         });
@@ -431,7 +435,81 @@ export async function getLocationFromIP(ipAddress: string): Promise<{
         }
       } catch (error: any) {
         if (error.name !== 'AbortError') {
-          throw error;
+          console.warn("geojs.io error:", error.message);
+        }
+      }
+      return null;
+    },
+    
+    // Service 5: ipwhois.app (free, reliable)
+    async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        
+        const response = await fetch(`https://ipwhois.app/json/${cleanIP}`, {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (compatible; LinkTracker/1.0)',
+          },
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.country) {
+            return {
+              country: data.country || undefined,
+              city: data.city || undefined,
+              region: data.region || undefined,
+              countryCode: data.country_code || undefined,
+              timezone: data.timezone || undefined,
+            };
+          }
+        }
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.warn("ipwhois.app error:", error.message);
+        }
+      }
+      return null;
+    },
+    
+    // Service 6: ip-api.com batch (alternative endpoint)
+    async () => {
+      try {
+        const protocol = typeof window === "undefined" && process.env.NODE_ENV === "production" ? "https" : "http";
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        
+        // Try without fields parameter as fallback
+        const response = await fetch(`${protocol}://ip-api.com/json/${cleanIP}`, {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (compatible; LinkTracker/1.0)',
+          },
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === "success") {
+            return {
+              country: data.country || undefined,
+              city: data.city || undefined,
+              region: data.regionName || undefined,
+              countryCode: data.countryCode || undefined,
+              timezone: data.timezone || undefined,
+            };
+          }
+        }
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.warn("ip-api.com (fallback) error:", error.message);
         }
       }
       return null;
