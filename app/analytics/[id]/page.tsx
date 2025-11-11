@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, onSnapshot } from "firebase/firestore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Click, Link as LinkType } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
@@ -16,9 +16,8 @@ export default function AnalyticsPage() {
   const [clicks, setClicks] = useState<Click[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadData = useCallback(async () => {
+  const loadLink = useCallback(async () => {
     try {
-      // Load link
       const { doc, getDoc } = await import("firebase/firestore");
       const linkRef = doc(db, "links", linkId);
       const linkDoc = await getDoc(linkRef);
@@ -31,31 +30,44 @@ export default function AnalyticsPage() {
           updatedAt: linkDoc.data().updatedAt?.toDate() || new Date(),
         } as LinkType);
       }
-
-      // Load clicks
-      const clicksRef = collection(db, "clicks");
-      const q = query(
-        clicksRef,
-        where("linkId", "==", linkId),
-        orderBy("timestamp", "desc")
-      );
-      const snapshot = await getDocs(q);
-      const clicksData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate() || new Date(),
-      })) as Click[];
-      setClicks(clicksData);
     } catch (error) {
-      console.error("Error loading analytics:", error);
-    } finally {
-      setLoading(false);
+      console.error("Error loading link:", error);
     }
   }, [linkId]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadLink();
+    setLoading(true);
+
+    // Set up real-time listener for clicks
+    const clicksRef = collection(db, "clicks");
+    const q = query(
+      clicksRef,
+      where("linkId", "==", linkId),
+      orderBy("timestamp", "desc")
+    );
+
+    // Real-time listener - automatically updates when new clicks are added
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const clicksData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          timestamp: doc.data().timestamp?.toDate() || new Date(),
+        })) as Click[];
+        setClicks(clicksData);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error listening to clicks:", error);
+        setLoading(false);
+      }
+    );
+
+    // Cleanup listener on unmount
+    return () => unsubscribe();
+  }, [linkId, loadLink]);
 
   const getChartData = () => {
     const dateMap = new Map<string, number>();
