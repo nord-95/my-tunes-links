@@ -8,11 +8,18 @@ async function getLink(slug: string): Promise<Link | null> {
     const { db } = await import("@/lib/firebase");
     const { collection, query, where, getDocs, limit } = await import("firebase/firestore");
     const linksRef = collection(db, "links");
+    // Query for active links with matching slug
     const q = query(linksRef, where("slug", "==", slug), where("isActive", "==", true), limit(1));
     const snapshot = await getDocs(q);
     
     if (snapshot.empty) {
-      console.log(`Link not found for slug: ${slug}`);
+      console.log(`Link not found for slug: ${slug} (or link is inactive)`);
+      // Try to find the link even if inactive for better error message
+      const allLinksQuery = query(linksRef, where("slug", "==", slug), limit(1));
+      const allSnapshot = await getDocs(allLinksQuery);
+      if (!allSnapshot.empty) {
+        console.log("Link exists but is inactive");
+      }
       return null;
     }
 
@@ -20,7 +27,12 @@ async function getLink(slug: string): Promise<Link | null> {
     const data = doc.data();
     
     if (!data.userId || !data.slug || !data.title || !data.destinationUrl) {
-      console.error("Link data is missing required fields:", data);
+      console.error("Link data is missing required fields:", {
+        hasUserId: !!data.userId,
+        hasSlug: !!data.slug,
+        hasTitle: !!data.title,
+        hasDestinationUrl: !!data.destinationUrl,
+      });
       return null;
     }
     
@@ -38,8 +50,15 @@ async function getLink(slug: string): Promise<Link | null> {
       createdAt: data.createdAt?.toDate() || new Date(),
       updatedAt: data.updatedAt?.toDate() || new Date(),
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching link:", error);
+    // Log more details about the error
+    if (error.code) {
+      console.error("Firestore error code:", error.code);
+      if (error.code === "permission-denied") {
+        console.error("Permission denied - check Firestore security rules");
+      }
+    }
     return null;
   }
 }

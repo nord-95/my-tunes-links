@@ -18,8 +18,8 @@ service cloud.firestore {
     
     // Links collection - users can only manage their own links
     match /links/{linkId} {
-      // Read: Only the owner can read their links
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Read: Allow public read for active links (for redirects), or authenticated users can read their own links
+      allow read: if resource.data.isActive == true || (isAuthenticated() && resource.data.userId == request.auth.uid);
       
       // Create: User must be authenticated and the userId must match their auth uid
       allow create: if isAuthenticated() 
