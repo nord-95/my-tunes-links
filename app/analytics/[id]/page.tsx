@@ -61,6 +61,9 @@ export default function AnalyticsPage() {
       },
       (error) => {
         console.error("Error listening to clicks:", error);
+        if (error.code === "failed-precondition") {
+          console.error("Missing Firestore index. Check the error message for a link to create it.");
+        }
         setLoading(false);
       }
     );
