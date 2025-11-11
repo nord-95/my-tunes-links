@@ -105,6 +105,7 @@ export default function LinkForm({ onSuccess, onCancel, initialData }: LinkFormP
       twitterTitle: initialData.twitterTitle || "",
       twitterDescription: initialData.twitterDescription || "",
       twitterImage: initialData.twitterImage || "",
+      siteIconUrl: initialData.siteIconUrl || "",
     } : {
       title: "",
       description: "",

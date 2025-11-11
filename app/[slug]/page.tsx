@@ -70,6 +70,7 @@ async function getLink(slug: string): Promise<Link | null> {
       twitterTitle: data.twitterTitle,
       twitterDescription: data.twitterDescription,
       twitterImage: data.twitterImage,
+      siteIconUrl: data.siteIconUrl,
     };
   } catch (error: any) {
     console.error("Error fetching link:", error);

@@ -98,6 +98,7 @@ export default function LinkDetailsPage() {
           twitterTitle: data.twitterTitle,
           twitterDescription: data.twitterDescription,
           twitterImage: data.twitterImage,
+          siteIconUrl: data.siteIconUrl,
         };
         
         // Check if user owns this link
