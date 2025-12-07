@@ -83,8 +83,8 @@ export default function ReleaseList({ releases, onUpdate }: ReleaseListProps) {
     <div className="space-y-4">
       {releases.map((release) => {
         const releaseUrl = typeof window !== "undefined" 
-          ? `${window.location.origin}/r/${release.slug}`
-          : `/r/${release.slug}`;
+          ? `${window.location.origin}/${release.slug}`
+          : `/${release.slug}`;
 
         return (
           <Card key={release.id} className={!release.isActive ? "opacity-60" : ""}>

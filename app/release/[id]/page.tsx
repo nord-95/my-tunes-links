@@ -158,7 +158,7 @@ export default function ReleaseDetailsPage() {
 
   const getReleaseUrl = () => {
     if (typeof window === "undefined") return "";
-    return `${window.location.origin}/r/${release?.slug}`;
+    return `${window.location.origin}/${release?.slug}`;
   };
 
   if (loading) {

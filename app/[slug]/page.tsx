@@ -2,7 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import LinkRedirect from "@/components/link-redirect";
-import { Link } from "@/lib/types";
+import ReleasePageClient from "@/components/release-page-client";
+import { Link, Release } from "@/lib/types";
 
 async function getLink(slug: string): Promise<Link | null> {
   try {
@@ -328,6 +329,160 @@ async function trackClick(linkId: string, headersList: Headers, currentUrl?: str
   }
 }
 
+async function getRelease(slug: string): Promise<Release | null> {
+  try {
+    const { db } = await import("@/lib/firebase");
+    const { collection, query, where, getDocs, limit } = await import("firebase/firestore");
+    const releasesRef = collection(db, "releases");
+    const q = query(releasesRef, where("slug", "==", slug), where("isActive", "==", true), limit(1));
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      return null;
+    }
+
+    const doc = snapshot.docs[0];
+    const data = doc.data();
+    
+    if (!data.userId || !data.slug || !data.artistName || !data.releaseName || !data.artworkUrl) {
+      return null;
+    }
+    
+    return {
+      id: doc.id,
+      userId: data.userId,
+      slug: data.slug,
+      artistName: data.artistName,
+      releaseName: data.releaseName,
+      artworkUrl: data.artworkUrl,
+      artistLogoUrl: data.artistLogoUrl,
+      releaseType: data.releaseType,
+      musicLinks: data.musicLinks,
+      createdAt: data.createdAt?.toDate() || new Date(),
+      updatedAt: data.updatedAt?.toDate() || new Date(),
+      views: data.views || 0,
+      isActive: data.isActive !== undefined ? data.isActive : true,
+      ogTitle: data.ogTitle,
+      ogDescription: data.ogDescription,
+      ogImage: data.ogImage,
+      ogType: data.ogType,
+      ogSiteName: data.ogSiteName,
+      twitterCard: data.twitterCard,
+      twitterTitle: data.twitterTitle,
+      twitterDescription: data.twitterDescription,
+      twitterImage: data.twitterImage,
+      siteIconUrl: data.siteIconUrl,
+    };
+  } catch (error: any) {
+    console.error("Error fetching release:", error);
+    return null;
+  }
+}
+
+async function trackReleaseView(releaseId: string, headersList: Headers, currentUrl?: string) {
+  try {
+    const { db } = await import("@/lib/firebase");
+    const { addDoc, collection, doc, getDoc, updateDoc } = await import("firebase/firestore");
+    
+    const userAgent = headersList.get("user-agent") || "";
+    const referer = headersList.get("referer") || "";
+    
+    const forwarded = headersList.get("x-forwarded-for");
+    const vercelForwarded = headersList.get("x-vercel-forwarded-for");
+    const realIp = headersList.get("x-real-ip");
+    const cfConnectingIp = headersList.get("cf-connecting-ip");
+    
+    let ipAddress = "";
+    if (forwarded) {
+      const ips = forwarded.split(",").map(ip => ip.trim()).filter(ip => ip);
+      ipAddress = ips.length > 0 ? ips[0] : "";
+    } else if (vercelForwarded) {
+      const ips = vercelForwarded.split(",").map(ip => ip.trim()).filter(ip => ip);
+      ipAddress = ips.length > 0 ? ips[0] : "";
+    } else {
+      ipAddress = realIp || cfConnectingIp || "";
+    }
+
+    let currentUrlParams: URLSearchParams | undefined;
+    let utmSource: string | undefined;
+    let utmMedium: string | undefined;
+    let utmCampaign: string | undefined;
+    let utmContent: string | undefined;
+    let utmTerm: string | undefined;
+    let fbclid: string | undefined;
+    
+    if (currentUrl) {
+      try {
+        const url = new URL(currentUrl);
+        currentUrlParams = url.searchParams;
+        utmSource = currentUrlParams.get("utm_source") || undefined;
+        utmMedium = currentUrlParams.get("utm_medium") || undefined;
+        utmCampaign = currentUrlParams.get("utm_campaign") || undefined;
+        utmContent = currentUrlParams.get("utm_content") || undefined;
+        utmTerm = currentUrlParams.get("utm_term") || undefined;
+        fbclid = currentUrlParams.get("fbclid") || undefined;
+      } catch (e) {
+        console.warn("Failed to parse current URL:", e);
+      }
+    }
+
+    const { parseUserAgent, detectSocialSource } = await import("@/lib/utils");
+    const deviceInfo = parseUserAgent(userAgent);
+    
+    let socialSource: string | undefined;
+    if (referer) {
+      socialSource = detectSocialSource(referer, currentUrlParams);
+    }
+    if (!socialSource && utmSource) {
+      socialSource = detectSocialSource("", currentUrlParams);
+    }
+    if (!socialSource && fbclid) {
+      socialSource = "Facebook";
+    }
+    
+    const clickDataRaw: Record<string, any> = {
+      releaseId,
+      timestamp: new Date(),
+      clickType: "view",
+      isBot: deviceInfo.isBot || false,
+      enrichmentStatus: "pending",
+      enrichmentAttempts: 0,
+    };
+
+    if (userAgent) clickDataRaw.userAgent = userAgent;
+    if (referer) clickDataRaw.referrer = referer;
+    if (ipAddress) clickDataRaw.ipAddress = ipAddress;
+    if (deviceInfo.platform) clickDataRaw.platform_type = deviceInfo.platform;
+    if (deviceInfo.device) clickDataRaw.device = deviceInfo.device;
+    if (deviceInfo.deviceType) clickDataRaw.deviceType = deviceInfo.deviceType;
+    if (deviceInfo.browser) clickDataRaw.browser = deviceInfo.browser;
+    if (deviceInfo.os) clickDataRaw.os = deviceInfo.os;
+    if (deviceInfo.isBot) clickDataRaw.isBot = deviceInfo.isBot;
+    if (deviceInfo.botType) clickDataRaw.botType = deviceInfo.botType;
+    if (socialSource) clickDataRaw.socialSource = socialSource;
+    if (utmSource) clickDataRaw.utmSource = utmSource;
+    if (utmMedium) clickDataRaw.utmMedium = utmMedium;
+    if (utmCampaign) clickDataRaw.utmCampaign = utmCampaign;
+    if (utmContent) clickDataRaw.utmContent = utmContent;
+    if (utmTerm) clickDataRaw.utmTerm = utmTerm;
+    if (fbclid) clickDataRaw.fbclid = fbclid;
+
+    await addDoc(collection(db, "releaseClicks"), clickDataRaw);
+
+    const releaseRef = doc(db, "releases", releaseId);
+    const releaseDoc = await getDoc(releaseRef);
+    if (releaseDoc.exists()) {
+      const currentViews = releaseDoc.data()?.views || 0;
+      await updateDoc(releaseRef, {
+        views: currentViews + 1,
+        updatedAt: new Date(),
+      });
+    }
+  } catch (error: any) {
+    console.error("Error tracking release view:", error);
+  }
+}
+
 // Generate metadata for Open Graph and social media previews
 export async function generateMetadata({
   params,
@@ -336,21 +491,23 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const link = await getLink(slug);
+  const release = link ? null : await getRelease(slug);
 
-  if (!link) {
+  if (!link && !release) {
     return {
-      title: "Link Not Found",
-      description: "The link you're looking for doesn't exist or has been deactivated.",
+      title: "Not Found",
+      description: "The page you're looking for doesn't exist or has been deactivated.",
     };
   }
 
-  // Get the current URL for og:url
   const headersList = await headers();
   const host = headersList.get("host") || headersList.get("x-forwarded-host") || "";
   const protocol = headersList.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
   const currentUrl = `${protocol}://${host}/${slug}`;
 
-  // Use OG metadata if available, otherwise fall back to regular fields
+  if (link) {
+
+    // Use OG metadata if available, otherwise fall back to regular fields
   const ogTitle = link.ogTitle || link.title;
   const ogDescription = link.ogDescription || link.description || `Click to visit ${link.destinationUrl}`;
   const ogImage = link.ogImage || link.thumbnailUrl;
@@ -405,7 +562,64 @@ export async function generateMetadata({
     },
   };
 
-  return metadata;
+    return metadata;
+  } else if (release) {
+    const ogTitle = release.ogTitle || `${release.artistName} - ${release.releaseName}`;
+    const ogDescription = release.ogDescription || `Listen to ${release.releaseName} by ${release.artistName}`;
+    const ogImage = release.ogImage || release.artworkUrl;
+    const ogType = release.ogType || "music.song";
+    const ogSiteName = release.ogSiteName || "My Tunes";
+
+    const twitterTitle = release.twitterTitle || ogTitle;
+    const twitterDescription = release.twitterDescription || ogDescription;
+    const twitterImage = release.twitterImage || ogImage;
+    const twitterCard = release.twitterCard || (ogImage ? "summary_large_image" : "summary");
+
+    const iconUrl = release.siteIconUrl || release.artworkUrl || "/favicon.ico";
+
+    return {
+      title: ogTitle,
+      description: ogDescription,
+      icons: {
+        icon: [{ url: iconUrl }],
+        shortcut: [iconUrl],
+        apple: [iconUrl],
+      },
+      openGraph: {
+        title: ogTitle,
+        description: ogDescription,
+        url: currentUrl,
+        siteName: ogSiteName,
+        type: ogType as any,
+        ...(ogImage && {
+          images: [
+            {
+              url: ogImage,
+              width: 1200,
+              height: 630,
+              alt: ogTitle,
+            },
+          ],
+        }),
+      },
+      twitter: {
+        card: twitterCard as any,
+        title: twitterTitle,
+        description: twitterDescription,
+        ...(twitterImage && {
+          images: [twitterImage],
+        }),
+      },
+      alternates: {
+        canonical: currentUrl,
+      },
+    };
+  }
+
+  return {
+    title: "Not Found",
+    description: "The page you're looking for doesn't exist.",
+  };
 }
 
 export default async function SlugPage({
@@ -417,8 +631,9 @@ export default async function SlugPage({
 }) {
   const { slug } = await params;
   const link = await getLink(slug);
+  const release = link ? null : await getRelease(slug);
 
-  if (!link) {
+  if (!link && !release) {
     // Try app-level settings for 404 redirect
     try {
       const { db } = await import("@/lib/firebase");
@@ -436,14 +651,10 @@ export default async function SlugPage({
   }
 
   const headersList = await headers();
-  
-  // Build current URL with query parameters for tracking
-  // Get the full URL from headers
   const host = headersList.get("host") || headersList.get("x-forwarded-host") || "";
   const protocol = headersList.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
   const path = `/${slug}`;
   
-  // Get query string from searchParams
   const paramsObj = await searchParams;
   const queryParts: string[] = [];
   for (const [key, value] of Object.entries(paramsObj)) {
@@ -452,31 +663,47 @@ export default async function SlugPage({
     }
   }
   const queryString = queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
-  
   const currentUrl = `${protocol}://${host}${path}${queryString}`;
-  
-  console.log("Tracking click for URL:", currentUrl); // Debug log
-  
-  // Track click - try to save it but don't block redirect for too long
-  // We'll use a timeout but still try to save in the background
-  const trackingPromise = trackClick(link.id, headersList, currentUrl, link);
-  
-  // Wait briefly for tracking, then continue with redirect
-  Promise.race([
-    trackingPromise,
-    new Promise((resolve) => setTimeout(() => resolve("timeout"), 100)),
-  ]).then((result) => {
-    if (result === "timeout") {
-      console.warn("Click tracking timed out, continuing in background");
-      // Continue tracking in background
-      trackingPromise.catch((err) => console.error("Background tracking failed:", err));
-    } else {
-      console.log("Click tracked successfully");
-    }
-  }).catch((error) => {
-    console.error("Error in trackClick:", error);
-  });
 
-  return <LinkRedirect link={link} />;
+  if (link) {
+
+    console.log("Tracking click for URL:", currentUrl);
+    
+    const trackingPromise = trackClick(link.id, headersList, currentUrl, link);
+    
+    Promise.race([
+      trackingPromise,
+      new Promise((resolve) => setTimeout(() => resolve("timeout"), 100)),
+    ]).then((result) => {
+      if (result === "timeout") {
+        console.warn("Click tracking timed out, continuing in background");
+        trackingPromise.catch((err) => console.error("Background tracking failed:", err));
+      } else {
+        console.log("Click tracked successfully");
+      }
+    }).catch((error) => {
+      console.error("Error in trackClick:", error);
+    });
+
+    return <LinkRedirect link={link} />;
+  } else if (release) {
+    // Track release view
+    const trackingPromise = trackReleaseView(release.id, headersList, currentUrl);
+    
+    Promise.race([
+      trackingPromise,
+      new Promise((resolve) => setTimeout(() => resolve("timeout"), 100)),
+    ]).then((result) => {
+      if (result === "timeout") {
+        trackingPromise.catch((err) => console.error("Background tracking failed:", err));
+      }
+    }).catch((error) => {
+      console.error("Error in trackReleaseView:", error);
+    });
+
+    return <ReleasePageClient release={release} />;
+  }
+
+  notFound();
 }
 
