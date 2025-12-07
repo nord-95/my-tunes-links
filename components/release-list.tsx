@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Release } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
-import { ExternalLink, Copy, Edit, Trash2, Eye, Music } from "lucide-react";
+import { ExternalLink, Copy, Edit, Trash2, Eye, Music, BarChart3 } from "lucide-react";
 import ReleaseForm from "@/components/release-form";
 
 interface ReleaseListProps {
@@ -192,6 +192,14 @@ export default function ReleaseList({ releases, onUpdate }: ReleaseListProps) {
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   View Page
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`/releases/analytics/${release.id}`, "_blank")}
+                >
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Analytics
                 </Button>
               </div>
             </CardContent>
