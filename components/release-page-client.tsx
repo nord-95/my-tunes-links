@@ -228,6 +228,8 @@ export default function ReleasePageClient({ release }: ReleasePageClientProps) {
         cursor: pointer;
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         text-decoration: none;
+        pointer-events: auto;
+        -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1);
       }
 
       .platform-tile:nth-child(1) { animation-delay: 0.6s; }
@@ -330,13 +332,15 @@ export default function ReleasePageClient({ release }: ReleasePageClientProps) {
           left: 0;
           width: 100%;
           height: 100%;
-          background: linear-gradient(to bottom, transparent 40%, #000000 90%);
+          background: linear-gradient(to bottom, transparent 30%, rgba(0, 0, 0, 0.3) 50%, #000000 85%);
           pointer-events: none;
           z-index: 1;
         }
 
         .release-container {
           padding-top: 40px;
+          position: relative;
+          z-index: 5;
         }
 
         .album-art {
@@ -353,11 +357,17 @@ export default function ReleasePageClient({ release }: ReleasePageClientProps) {
           gap: 1rem;
           width: 100%;
           padding: 0 1rem;
+          position: relative;
+          z-index: 10;
         }
 
         .platform-tile {
           width: 100%;
           padding: 1.25rem;
+          position: relative;
+          z-index: 10;
+          pointer-events: auto;
+          -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1);
         }
       }
     `;
@@ -376,15 +386,26 @@ export default function ReleasePageClient({ release }: ReleasePageClientProps) {
   }, [release.artworkUrl]);
 
   const handlePlatformClick = async (link: MusicLink) => {
-    await trackButtonClick(
+    // Track click (don't wait for it to complete)
+    trackButtonClick(
       release.id,
       "platform_click",
       link.platform,
       link.platform,
       link.url
-    );
+    ).catch(err => console.error("Tracking error:", err));
+    
+    // Open link immediately
     window.open(link.url, "_blank", "noopener,noreferrer");
   };
+
+  // Get release year from createdAt
+  const releaseYear = release.createdAt instanceof Date 
+    ? release.createdAt.getFullYear() 
+    : new Date(release.createdAt).getFullYear();
+  
+  // Format artist name with release type and year
+  const artistInfo = `${release.artistName} · ${release.releaseType} · ${releaseYear}`;
 
   return (
     <>
@@ -397,8 +418,8 @@ export default function ReleasePageClient({ release }: ReleasePageClientProps) {
         />
         {!release.artistLogoUrl && (
           <div className="mobile-text-group">
-            <h1>{release.artistName}</h1>
-            <p>{release.releaseName}</p>
+            <h1>{release.releaseName}</h1>
+            <p>{artistInfo}</p>
           </div>
         )}
       </div>
@@ -416,13 +437,13 @@ export default function ReleasePageClient({ release }: ReleasePageClientProps) {
         )}
         {release.artistLogoUrl && (
           <div className="mobile-text-group">
-            <h1>{release.artistName}</h1>
-            <p>{release.releaseName}</p>
+            <h1>{release.releaseName}</h1>
+            <p>{artistInfo}</p>
           </div>
         )}
         <div className="text-group">
-          <h1>{release.artistName}</h1>
-          <p>{release.releaseName}</p>
+          <h1>{release.releaseName}</h1>
+          <p>{artistInfo}</p>
         </div>
 
         {release.musicLinks && release.musicLinks.length > 0 && (
@@ -439,6 +460,13 @@ export default function ReleasePageClient({ release }: ReleasePageClientProps) {
                   onClick={(e) => {
                     e.preventDefault();
                     handlePlatformClick(link);
+                  }}
+                  onTouchStart={(e) => {
+                    // Ensure touch events work on mobile
+                    e.currentTarget.style.opacity = "0.8";
+                  }}
+                  onTouchEnd={(e) => {
+                    e.currentTarget.style.opacity = "1";
                   }}
                 >
                   {logoUrl && <img src={logoUrl} alt={link.platform} />}
