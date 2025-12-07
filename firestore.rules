@@ -81,13 +81,6 @@ service cloud.firestore {
       allow create: if isAuthenticated() 
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.keys().hasAll(['userId', 'artistName', 'releaseName', 'artworkUrl', 'releaseType', 'slug', 'createdAt', 'updatedAt', 'views', 'isActive'])
-        && request.resource.data.artistName is string
-        && request.resource.data.releaseName is string
-        && request.resource.data.artworkUrl is string
-        && request.resource.data.releaseType is string
-        && request.resource.data.slug is string
-        && request.resource.data.createdAt is timestamp
-        && request.resource.data.updatedAt is timestamp
         && request.resource.data.views is int
         && request.resource.data.isActive is bool;
       

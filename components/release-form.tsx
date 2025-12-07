@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { auth, db } from "@/lib/firebase";
-import { collection, addDoc, updateDoc, doc, Timestamp } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -182,8 +182,8 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
         slug: data.slug || generateSlug(8),
         views: initialData?.views || 0,
         isActive: initialData?.isActive !== undefined ? initialData.isActive : true,
-        createdAt: initialData?.createdAt ? (initialData.createdAt instanceof Date ? Timestamp.fromDate(initialData.createdAt) : initialData.createdAt) : Timestamp.now(),
-        updatedAt: Timestamp.now(),
+        createdAt: initialData?.createdAt || new Date(),
+        updatedAt: new Date(),
       };
 
       // Add artist logo if provided
@@ -237,6 +237,8 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
           description: "Release updated successfully",
         });
       } else {
+        console.log("Creating release with data:", releaseData);
+        console.log("User ID:", user.uid);
         await addDoc(collection(db, "releases"), releaseData);
         toast({
           title: "Success",
@@ -246,6 +248,9 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
 
       onSuccess?.();
     } catch (error: any) {
+      console.error("Error creating release:", error);
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
       toast({
         title: "Error",
         description: error.message || "Failed to save release",
