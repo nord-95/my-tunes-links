@@ -354,7 +354,9 @@ export default function ReleasePageClient({ release }: ReleasePageClientProps) {
           text-align: center;
           margin-bottom: 2rem;
           padding: 0 1rem;
+          padding-bottom: 0px;
           position: relative;
+          top: -80px;
           z-index: 2;
         }
 
@@ -391,8 +393,10 @@ export default function ReleasePageClient({ release }: ReleasePageClientProps) {
         }
 
         .release-container {
-          padding-top: 40px;
+          padding-top: 0;
+          padding: 0;
           position: relative;
+          top: -70px;
           z-index: 5;
         }
 
