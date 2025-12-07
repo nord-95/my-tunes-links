@@ -237,16 +237,7 @@ export default function ReleaseList({ releases, onUpdate }: ReleaseListProps) {
           </CardHeader>
           <CardContent>
             <ReleaseForm
-              initialData={{
-                ...editingRelease,
-                // Ensure dates are properly formatted
-                createdAt: editingRelease.createdAt instanceof Date 
-                  ? editingRelease.createdAt 
-                  : editingRelease.createdAt?.toDate?.() || new Date(editingRelease.createdAt),
-                updatedAt: editingRelease.updatedAt instanceof Date 
-                  ? editingRelease.updatedAt 
-                  : editingRelease.updatedAt?.toDate?.() || new Date(editingRelease.updatedAt),
-              }}
+              initialData={editingRelease}
               onSuccess={() => {
                 setEditingRelease(null);
                 onUpdate?.();
