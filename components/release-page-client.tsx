@@ -210,6 +210,10 @@ export default function ReleasePageClient({ release }: ReleasePageClientProps) {
         max-width: 800px;
       }
 
+      .mobile-text-group {
+        display: none;
+      }
+
       .platform-tile {
         background: var(--card-bg);
         border-radius: 1rem;
@@ -290,6 +294,27 @@ export default function ReleasePageClient({ release }: ReleasePageClientProps) {
           display: none;
         }
 
+        .mobile-text-group {
+          display: block;
+          text-align: center;
+          margin-bottom: 2rem;
+          padding: 0 1rem;
+          position: relative;
+          z-index: 2;
+        }
+
+        .mobile-text-group h1 {
+          font-size: 1.75rem;
+          font-weight: 800;
+          margin-bottom: 0.5rem;
+          color: var(--text-light);
+        }
+
+        .mobile-text-group p {
+          font-size: 1.125rem;
+          color: #ccc;
+        }
+
         #album-art-desktop {
           display: none;
         }
@@ -320,6 +345,19 @@ export default function ReleasePageClient({ release }: ReleasePageClientProps) {
           width: 100vw;
           margin-left: calc(-2rem);
           margin-right: calc(-2rem);
+        }
+
+        .platforms {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          width: 100%;
+          padding: 0 1rem;
+        }
+
+        .platform-tile {
+          width: 100%;
+          padding: 1.25rem;
         }
       }
     `;
@@ -357,6 +395,12 @@ export default function ReleasePageClient({ release }: ReleasePageClientProps) {
           className="album-art"
           id="album-art-mobile"
         />
+        {!release.artistLogoUrl && (
+          <div className="mobile-text-group">
+            <h1>{release.artistName}</h1>
+            <p>{release.releaseName}</p>
+          </div>
+        )}
       </div>
       <div className="release-container">
         <img
@@ -368,6 +412,12 @@ export default function ReleasePageClient({ release }: ReleasePageClientProps) {
         {release.artistLogoUrl && (
           <div className="logo-container">
             <img src={release.artistLogoUrl} alt={`${release.artistName} Logo`} className="logo" />
+          </div>
+        )}
+        {release.artistLogoUrl && (
+          <div className="mobile-text-group">
+            <h1>{release.artistName}</h1>
+            <p>{release.releaseName}</p>
           </div>
         )}
         <div className="text-group">
