@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Release } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
-import { ExternalLink, Copy, Edit, Trash2, Eye, Music, BarChart3 } from "lucide-react";
+import { ExternalLink, Copy, Edit, Trash2, Eye, Music, BarChart3, X } from "lucide-react";
 import ReleaseForm from "@/components/release-form";
 
 interface ReleaseListProps {
@@ -108,7 +108,16 @@ export default function ReleaseList({ releases, onUpdate }: ReleaseListProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setEditingRelease(release)}
+                    onClick={() => {
+                      setEditingRelease(release);
+                      // Scroll to form after a brief delay to ensure it's rendered
+                      setTimeout(() => {
+                        const formElement = document.querySelector('[data-release-form]');
+                        if (formElement) {
+                          formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                      }, 100);
+                    }}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -208,13 +217,36 @@ export default function ReleaseList({ releases, onUpdate }: ReleaseListProps) {
       })}
 
       {editingRelease && (
-        <Card>
+        <Card data-release-form className="border-primary">
           <CardHeader>
-            <CardTitle>Edit Release</CardTitle>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle>Edit Release</CardTitle>
+                <CardDescription>
+                  Editing: {editingRelease.artistName} - {editingRelease.releaseName}
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditingRelease(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <ReleaseForm
-              initialData={editingRelease}
+              initialData={{
+                ...editingRelease,
+                // Ensure dates are properly formatted
+                createdAt: editingRelease.createdAt instanceof Date 
+                  ? editingRelease.createdAt 
+                  : editingRelease.createdAt?.toDate?.() || new Date(editingRelease.createdAt),
+                updatedAt: editingRelease.updatedAt instanceof Date 
+                  ? editingRelease.updatedAt 
+                  : editingRelease.updatedAt?.toDate?.() || new Date(editingRelease.updatedAt),
+              }}
               onSuccess={() => {
                 setEditingRelease(null);
                 onUpdate?.();

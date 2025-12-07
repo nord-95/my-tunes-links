@@ -28,11 +28,14 @@ async function trackButtonClick(
   try {
     const { db } = await import("@/lib/firebase");
     const { collection, addDoc } = await import("firebase/firestore");
+    const { parseUserAgent, detectSocialSource } = await import("@/lib/utils");
     
     const clickData: any = {
       releaseId,
       timestamp: new Date(),
       clickType,
+      enrichmentStatus: "pending",
+      enrichmentAttempts: 0,
     };
 
     if (buttonLabel) clickData.buttonLabel = buttonLabel;
@@ -40,8 +43,58 @@ async function trackButtonClick(
     if (url) clickData.url = url;
 
     if (typeof window !== "undefined") {
-      clickData.userAgent = navigator.userAgent;
-      clickData.referrer = document.referrer || "";
+      const userAgent = navigator.userAgent;
+      const referrer = document.referrer || "";
+      
+      clickData.userAgent = userAgent;
+      clickData.referrer = referrer;
+
+      // Parse user agent for device/browser/OS info
+      const deviceInfo = parseUserAgent(userAgent);
+      
+      if (deviceInfo.platform) clickData.platform_type = deviceInfo.platform;
+      if (deviceInfo.device) clickData.device = deviceInfo.device;
+      if (deviceInfo.deviceType) clickData.deviceType = deviceInfo.deviceType;
+      if (deviceInfo.browser) clickData.browser = deviceInfo.browser;
+      if (deviceInfo.os) clickData.os = deviceInfo.os;
+      if (deviceInfo.isBot) clickData.isBot = deviceInfo.isBot;
+      if (deviceInfo.botType) clickData.botType = deviceInfo.botType;
+
+      // Parse URL for UTM parameters
+      try {
+        const currentUrl = window.location.href;
+        const urlObj = new URL(currentUrl);
+        const params = urlObj.searchParams;
+        
+        const utmSource = params.get("utm_source");
+        const utmMedium = params.get("utm_medium");
+        const utmCampaign = params.get("utm_campaign");
+        const utmContent = params.get("utm_content");
+        const utmTerm = params.get("utm_term");
+        const fbclid = params.get("fbclid");
+
+        if (utmSource) clickData.utmSource = utmSource;
+        if (utmMedium) clickData.utmMedium = utmMedium;
+        if (utmCampaign) clickData.utmCampaign = utmCampaign;
+        if (utmContent) clickData.utmContent = utmContent;
+        if (utmTerm) clickData.utmTerm = utmTerm;
+        if (fbclid) clickData.fbclid = fbclid;
+
+        // Detect social source
+        let socialSource: string | undefined;
+        if (referrer) {
+          socialSource = detectSocialSource(referrer, params);
+        }
+        if (!socialSource && utmSource) {
+          socialSource = detectSocialSource("", params);
+        }
+        if (!socialSource && fbclid) {
+          socialSource = "Facebook";
+        }
+        if (socialSource) clickData.socialSource = socialSource;
+      } catch (e) {
+        console.warn("Failed to parse URL for tracking:", e);
+      }
     }
 
     await addDoc(collection(db, "releaseClicks"), clickData);

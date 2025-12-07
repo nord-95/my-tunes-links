@@ -90,8 +90,12 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
       releaseName: initialData.releaseName || "",
       artworkUrl: initialData.artworkUrl || "",
       artistLogoUrl: initialData.artistLogoUrl || "",
-      releaseType: initialData.releaseType || "Single",
-      customReleaseType: RELEASE_TYPES.includes(initialData.releaseType) ? "" : initialData.releaseType || "",
+      releaseType: RELEASE_TYPES.includes(initialData.releaseType as ReleaseType) 
+        ? initialData.releaseType 
+        : "Custom",
+      customReleaseType: RELEASE_TYPES.includes(initialData.releaseType as ReleaseType) 
+        ? "" 
+        : (initialData.releaseType || ""),
       slug: initialData.slug || "",
       ogTitle: initialData.ogTitle || "",
       ogDescription: initialData.ogDescription || "",
