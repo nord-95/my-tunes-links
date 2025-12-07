@@ -142,16 +142,7 @@ export default function EditReleasePage() {
           </CardHeader>
           <CardContent>
             <ReleaseForm
-              initialData={{
-                ...release,
-                // Ensure dates are properly formatted
-                createdAt: release.createdAt instanceof Date 
-                  ? release.createdAt 
-                  : release.createdAt?.toDate?.() || new Date(release.createdAt),
-                updatedAt: release.updatedAt instanceof Date 
-                  ? release.updatedAt 
-                  : release.updatedAt?.toDate?.() || new Date(release.updatedAt),
-              }}
+              initialData={release}
               onSuccess={() => {
                 router.push(`/release/${release.id}`);
               }}
