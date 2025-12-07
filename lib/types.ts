@@ -87,3 +87,71 @@ export interface AnalyticsData {
   topReferrers: { referrer: string; clicks: number }[];
 }
 
+export type ReleaseType = 
+  | "Single"
+  | "EP"
+  | "Album"
+  | "Playlist"
+  | "Live Version"
+  | "Music Video"
+  | string; // Custom type
+
+export interface Release {
+  id: string;
+  userId: string;
+  slug: string;
+  artistName: string;
+  releaseName: string;
+  artworkUrl: string;
+  artistLogoUrl?: string;
+  releaseType: ReleaseType;
+  musicLinks?: MusicLink[];
+  createdAt: Date;
+  updatedAt: Date;
+  views: number;
+  isActive: boolean;
+  // Open Graph / Social Media Metadata
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  ogType?: string;
+  ogSiteName?: string;
+  twitterCard?: string;
+  twitterTitle?: string;
+  twitterDescription?: string;
+  twitterImage?: string;
+  siteIconUrl?: string;
+}
+
+export interface ReleaseClick {
+  id: string;
+  releaseId: string;
+  timestamp: Date;
+  clickType: "view" | "button_click" | "platform_click";
+  buttonLabel?: string;
+  platform?: string;
+  url?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  referrer?: string;
+  country?: string;
+  city?: string;
+  region?: string;
+  countryCode?: string;
+  timezone?: string;
+  platform_type?: string; // iOS, Android, Windows, macOS, Linux
+  device?: string; // mobile, desktop, tablet
+  deviceType?: string; // iPhone, iPad, Samsung, etc.
+  browser?: string; // Chrome, Safari, Firefox, etc.
+  os?: string; // Operating system
+  socialSource?: string; // facebook, twitter, instagram, etc.
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmContent?: string;
+  utmTerm?: string;
+  fbclid?: string;
+  isBot?: boolean;
+  botType?: string;
+}
+

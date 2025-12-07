@@ -71,6 +71,52 @@ service cloud.firestore {
         // Allow updating only location fields (check that all changed keys are location fields)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['country', 'city', 'region', 'countryCode', 'timezone']);
     }
+    
+    // Releases collection - users can only manage their own releases
+    match /releases/{releaseId} {
+      // Read: Allow public read for active releases (for display), or authenticated users can read their own releases
+      allow read: if resource.data.isActive == true || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      
+      // Create: User must be authenticated and the userId must match their auth uid
+      allow create: if isAuthenticated() 
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAll(['userId', 'artistName', 'releaseName', 'artworkUrl', 'releaseType', 'slug', 'createdAt', 'updatedAt', 'views', 'isActive'])
+        && request.resource.data.views is int
+        && request.resource.data.isActive is bool;
+      
+      // Update: Only owner can update, and userId cannot be changed
+      allow update: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.updatedAt is timestamp;
+      
+      // Delete: Only owner can delete
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // ReleaseClicks collection - for tracking release views and button clicks
+    match /releaseClicks/{clickId} {
+      // Read: Users can only read clicks for their own releases
+      allow read: if isAuthenticated() 
+        && exists(/databases/$(database)/documents/releases/$(resource.data.releaseId))
+        && get(/databases/$(database)/documents/releases/$(resource.data.releaseId)).data.userId == request.auth.uid;
+      
+      // Create: Anyone can create release clicks (for tracking), but with validation
+      allow create: if request.resource.data.keys().hasAll(['releaseId', 'timestamp', 'clickType'])
+        && request.resource.data.releaseId is string
+        && request.resource.data.timestamp is timestamp
+        && request.resource.data.clickType is string
+        && exists(/databases/$(database)/documents/releases/$(request.resource.data.releaseId));
+      
+      // Update: Allow users to update location data for their own release clicks
+      allow update: if isAuthenticated()
+        && resource.data.releaseId is string
+        && exists(/databases/$(database)/documents/releases/$(resource.data.releaseId))
+        && get(/databases/$(database)/documents/releases/$(resource.data.releaseId)).data.userId == request.auth.uid
+        && request.resource.data.releaseId == resource.data.releaseId
+        && request.resource.data.timestamp == resource.data.timestamp
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['country', 'city', 'region', 'countryCode', 'timezone']);
+    }
   }
 }
 

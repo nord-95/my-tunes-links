@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import LinkForm from "@/components/link-form";
 import LinkList from "@/components/link-list";
 import { Link } from "@/lib/types";
-import { Plus, LogOut } from "lucide-react";
+import { Plus, LogOut, Music } from "lucide-react";
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
@@ -117,10 +117,16 @@ export default function Dashboard() {
               Create and manage your music links
             </p>
           </div>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Link
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => router.push("/releases/new")}>
+              <Music className="h-4 w-4 mr-2" />
+              Add Release
+            </Button>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Link
+            </Button>
+          </div>
         </div>
 
         {showForm && (
