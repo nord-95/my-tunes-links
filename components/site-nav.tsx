@@ -31,6 +31,7 @@ export default function SiteNav() {
         </Link>
         <nav className="flex items-center gap-1">
           <NavLink href="/" label="Dashboard" icon={BarChart3} />
+          <NavLink href="/releases" label="Releases" icon={Music} />
           <NavLink href="/releases/new" label="New Release" icon={Music} />
           <NavLink href="/settings" label="Settings" icon={Settings} />
         </nav>
