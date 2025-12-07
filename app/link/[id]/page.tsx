@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Link as LinkType } from "@/lib/types";
 import { formatDate, getPlatformIcon } from "@/lib/utils";
-import LinkForm from "@/components/link-form";
 import { 
   ExternalLink, 
   Copy, 
@@ -45,7 +44,6 @@ export default function LinkDetailsPage() {
   const linkId = params.id as string;
   const [link, setLink] = useState<LinkType | null>(null);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
   const [user, setUser] = useState<any>(null);
   const { toast } = useToast();
 
@@ -210,11 +208,11 @@ export default function LinkDetailsPage() {
               Analytics
             </Button>
             <Button
-              variant={editing ? "secondary" : "default"}
-              onClick={() => setEditing(!editing)}
+              variant="default"
+              onClick={() => router.push(`/link/edit/${link.id}`)}
             >
               <Edit className="h-4 w-4 mr-2" />
-              {editing ? "Cancel Edit" : "Edit Link"}
+              Edit Link
             </Button>
             <Button
               variant="destructive"
@@ -226,25 +224,7 @@ export default function LinkDetailsPage() {
           </div>
         </div>
 
-        {editing ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Edit Link</CardTitle>
-              <CardDescription>Update your link details</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <LinkForm
-                initialData={link}
-                onSuccess={() => {
-                  setEditing(false);
-                  loadLink();
-                }}
-                onCancel={() => setEditing(false)}
-              />
-            </CardContent>
-          </Card>
-        ) : (
-          <>
+        <>
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card>
@@ -592,8 +572,7 @@ export default function LinkDetailsPage() {
                 </CardContent>
               </Card>
             )}
-          </>
-        )}
+        </>
       </div>
     </div>
   );
