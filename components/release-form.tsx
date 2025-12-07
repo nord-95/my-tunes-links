@@ -146,7 +146,7 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
       {
         platform: newMusicLink.platform,
         url: newMusicLink.url,
-        title: newMusicLink.title || undefined,
+        ...(newMusicLink.title && newMusicLink.title.trim() ? { title: newMusicLink.title.trim() } : {}),
       },
     ]);
     setNewMusicLink({ platform: "spotify", url: "", title: "" });
@@ -191,9 +191,13 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
         releaseData.artistLogoUrl = data.artistLogoUrl.trim();
       }
 
-      // Only include musicLinks if there are any
+      // Only include musicLinks if there are any, and clean them
       if (musicLinks.length > 0) {
-        releaseData.musicLinks = musicLinks;
+        releaseData.musicLinks = musicLinks.map(link => ({
+          platform: link.platform,
+          url: link.url,
+          ...(link.title && { title: link.title }),
+        }));
       }
 
       // Add Open Graph / Social Media Metadata
@@ -228,18 +232,43 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
         releaseData.siteIconUrl = data.siteIconUrl.trim();
       }
 
+      // Remove any undefined values (Firestore doesn't allow undefined)
+      const cleanData = (obj: any): any => {
+        if (obj === null || obj === undefined) {
+          return null;
+        }
+        if (Array.isArray(obj)) {
+          return obj.map(item => cleanData(item)).filter(item => item !== undefined);
+        }
+        if (typeof obj === 'object' && obj.constructor === Object) {
+          const cleaned: any = {};
+          for (const key in obj) {
+            if (obj[key] !== undefined) {
+              const cleanedValue = cleanData(obj[key]);
+              if (cleanedValue !== undefined) {
+                cleaned[key] = cleanedValue;
+              }
+            }
+          }
+          return cleaned;
+        }
+        return obj;
+      };
+
+      const cleanedReleaseData = cleanData(releaseData);
+
       if (initialData) {
         // Don't update createdAt on edit
-        const { createdAt, ...updateData } = releaseData;
-        await updateDoc(doc(db, "releases", initialData.id), updateData);
+        const { createdAt, ...updateData } = cleanedReleaseData;
+        await updateDoc(doc(db, "releases", initialData.id), cleanData(updateData));
         toast({
           title: "Success",
           description: "Release updated successfully",
         });
       } else {
-        console.log("Creating release with data:", releaseData);
+        console.log("Creating release with data:", cleanedReleaseData);
         console.log("User ID:", user.uid);
-        await addDoc(collection(db, "releases"), releaseData);
+        await addDoc(collection(db, "releases"), cleanedReleaseData);
         toast({
           title: "Success",
           description: "Release created successfully",
