@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { auth, db } from "@/lib/firebase";
-import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, Timestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -182,8 +182,8 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
         slug: data.slug || generateSlug(8),
         views: initialData?.views || 0,
         isActive: initialData?.isActive !== undefined ? initialData.isActive : true,
-        createdAt: initialData?.createdAt || new Date(),
-        updatedAt: new Date(),
+        createdAt: initialData?.createdAt ? (initialData.createdAt instanceof Date ? Timestamp.fromDate(initialData.createdAt) : initialData.createdAt) : Timestamp.now(),
+        updatedAt: Timestamp.now(),
       };
 
       // Add artist logo if provided
@@ -229,7 +229,9 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
       }
 
       if (initialData) {
-        await updateDoc(doc(db, "releases", initialData.id), releaseData);
+        // Don't update createdAt on edit
+        const { createdAt, ...updateData } = releaseData;
+        await updateDoc(doc(db, "releases", initialData.id), updateData);
         toast({
           title: "Success",
           description: "Release updated successfully",
