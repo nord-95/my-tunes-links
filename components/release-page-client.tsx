@@ -469,13 +469,13 @@ export default function ReleasePageClient({ release }: ReleasePageClientProps) {
           className="album-art"
           id="album-art-mobile"
         />
-        {!release.artistLogoUrl && (
-          <div className="mobile-text-group">
-            <h1>{release.releaseName}</h1>
-            <p>{artistInfo}</p>
-          </div>
-        )}
       </div>
+      {!release.artistLogoUrl && (
+        <div className="mobile-text-group">
+          <h1>{release.releaseName}</h1>
+          <p>{artistInfo}</p>
+        </div>
+      )}
       <div className="release-container">
         <img
           src={release.artworkUrl}
