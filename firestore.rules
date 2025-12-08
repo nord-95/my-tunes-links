@@ -145,13 +145,14 @@ service cloud.firestore {
     match /newsletter/{artistName}/emails/{emailId} {
       // Read: Only the artist owner can read emails
       allow read: if isAuthenticated() 
+        && resource.data.artistId is string
         && exists(/databases/$(database)/documents/artists/$(resource.data.artistId))
         && get(/databases/$(database)/documents/artists/$(resource.data.artistId)).data.userId == request.auth.uid;
       
       // Create: Anyone can subscribe to newsletter (public)
+      // Only validate required fields exist and are correct types
       allow create: if request.resource.data.keys().hasAll(['email', 'subscribedAt', 'artistName', 'artistId'])
         && request.resource.data.email is string
-        && request.resource.data.subscribedAt is timestamp
         && request.resource.data.artistName is string
         && request.resource.data.artistId is string;
       

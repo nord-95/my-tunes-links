@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Artist, SocialLink } from "@/lib/types";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
+import { collection, addDoc, query, where, getDocs, Timestamp } from "firebase/firestore";
 
 interface ArtistBioProps {
   artist: Artist;
@@ -98,7 +98,7 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
 
       await addDoc(newsletterRef, {
         email: email.toLowerCase().trim(),
-        subscribedAt: new Date(),
+        subscribedAt: Timestamp.now(),
         artistName: artist.name,
         artistId: artist.id,
       });
