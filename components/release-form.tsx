@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { auth, db } from "@/lib/firebase";
-import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, query, where, getDocs, orderBy } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { generateSlug } from "@/lib/utils";
-import { MusicPlatform, MusicLink, ReleaseType } from "@/lib/types";
+import { MusicPlatform, MusicLink, ReleaseType, Artist } from "@/lib/types";
 import { Plus, X } from "lucide-react";
 
 const releaseSchema = z.object({
@@ -67,6 +67,8 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
   const [musicLinks, setMusicLinks] = useState<MusicLink[]>(
     initialData?.musicLinks || []
   );
+  const [artists, setArtists] = useState<Artist[]>([]);
+  const [selectedArtistId, setSelectedArtistId] = useState<string>("");
   const [newMusicLink, setNewMusicLink] = useState<{
     platform: MusicPlatform;
     url: string;
@@ -130,6 +132,82 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
 
   const releaseType = watch("releaseType");
   const slug = watch("slug");
+  const artistName = watch("artistName");
+
+  useEffect(() => {
+    const loadArtists = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const artistsRef = collection(db, "artists");
+        const q = query(
+          artistsRef,
+          where("userId", "==", user.uid),
+          orderBy("name", "asc")
+        );
+        const snapshot = await getDocs(q);
+        const artistsData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate() || new Date(),
+          updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+        })) as Artist[];
+        setArtists(artistsData);
+
+        // If editing and artistName matches an artist, select it
+        if (initialData?.artistName && artistsData.length > 0) {
+          const matchingArtist = artistsData.find(a => a.name === initialData.artistName);
+          if (matchingArtist) {
+            setSelectedArtistId(matchingArtist.id);
+          }
+        }
+      } catch (error: any) {
+        // Silently handle index errors - try without orderBy
+        if (error.code === "failed-precondition" && error.message?.includes("index")) {
+          try {
+            const user = auth.currentUser;
+            if (!user) return;
+            const artistsRef = collection(db, "artists");
+            const q = query(artistsRef, where("userId", "==", user.uid));
+            const snapshot = await getDocs(q);
+            const artistsData = snapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+              createdAt: doc.data().createdAt?.toDate() || new Date(),
+              updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+            })) as Artist[];
+            artistsData.sort((a, b) => a.name.localeCompare(b.name));
+            setArtists(artistsData);
+            
+            if (initialData?.artistName && artistsData.length > 0) {
+              const matchingArtist = artistsData.find(a => a.name === initialData.artistName);
+              if (matchingArtist) {
+                setSelectedArtistId(matchingArtist.id);
+              }
+            }
+          } catch (fallbackError) {
+            console.error("Error loading artists:", fallbackError);
+          }
+        } else {
+          console.error("Error loading artists:", error);
+        }
+      }
+    };
+
+    loadArtists();
+  }, [initialData]);
+
+  const handleArtistSelect = (artistId: string) => {
+    setSelectedArtistId(artistId);
+    const artist = artists.find(a => a.id === artistId);
+    if (artist) {
+      setValue("artistName", artist.name);
+      if (artist.profileImageUrl && !initialData?.artistLogoUrl) {
+        setValue("artistLogoUrl", artist.profileImageUrl);
+      }
+    }
+  };
 
   const generateRandomSlug = () => {
     setValue("slug", generateSlug(8));
@@ -294,12 +372,50 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {artists.length > 0 && (
+        <div className="space-y-2">
+          <Label htmlFor="artistSelect">Select Artist (Optional)</Label>
+          <select
+            id="artistSelect"
+            value={selectedArtistId}
+            onChange={(e) => {
+              const value = e.target.value;
+              setSelectedArtistId(value);
+              if (value) {
+                handleArtistSelect(value);
+              } else {
+                setValue("artistName", "");
+                setValue("artistLogoUrl", "");
+              }
+            }}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="">-- Select an artist or enter manually --</option>
+            {artists.map((artist) => (
+              <option key={artist.id} value={artist.id}>
+                {artist.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-sm text-muted-foreground">
+            Select an existing artist or enter the artist name manually below
+          </p>
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="artistName">Artist Name *</Label>
         <Input
           id="artistName"
           {...register("artistName")}
           placeholder="Ryan Miller"
+          onChange={(e) => {
+            // If manually typing, clear selected artist
+            if (selectedArtistId && e.target.value !== artists.find(a => a.id === selectedArtistId)?.name) {
+              setSelectedArtistId("");
+            }
+            register("artistName").onChange(e);
+          }}
         />
         {errors.artistName && (
           <p className="text-sm text-destructive">{errors.artistName.message}</p>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Music, Link as LinkIcon, Settings, BarChart3 } from "lucide-react";
+import { Music, Link as LinkIcon, Settings, BarChart3, User } from "lucide-react";
 
 const NavLink = ({ href, label, icon: Icon }: { href: string; label: string; icon?: any }) => {
   const pathname = usePathname();
@@ -31,6 +31,7 @@ export default function SiteNav() {
         </Link>
         <nav className="flex items-center gap-1">
           <NavLink href="/" label="Dashboard" icon={BarChart3} />
+          <NavLink href="/artists" label="Artists" icon={User} />
           <NavLink href="/releases" label="Releases" icon={Music} />
           <NavLink href="/releases/new" label="New Release" icon={Music} />
           <NavLink href="/settings" label="Settings" icon={Settings} />

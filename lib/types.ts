@@ -155,3 +155,22 @@ export interface ReleaseClick {
   botType?: string;
 }
 
+export interface SocialLink {
+  platform: string; // e.g., "instagram", "twitter", "facebook", "youtube", "tiktok"
+  url: string;
+}
+
+export interface Artist {
+  id: string;
+  userId: string;
+  name: string;
+  slug: string;
+  bio?: string;
+  profileImageUrl?: string;
+  website?: string;
+  socialLinks?: SocialLink[];
+  newsletterEmails?: string[]; // Array of email addresses for newsletter
+  createdAt: Date;
+  updatedAt: Date;
+}
+

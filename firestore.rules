@@ -117,6 +117,28 @@ service cloud.firestore {
         && request.resource.data.timestamp == resource.data.timestamp
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['country', 'city', 'region', 'countryCode', 'timezone']);
     }
+    
+    // Artists collection - users can only manage their own artists
+    match /artists/{artistId} {
+      // Read: Authenticated users can read their own artists
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Create: User must be authenticated and the userId must match their auth uid
+      allow create: if isAuthenticated() 
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAll(['userId', 'name', 'slug', 'createdAt', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.slug is string;
+      
+      // Update: Only owner can update, and userId cannot be changed
+      allow update: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.updatedAt is timestamp;
+      
+      // Delete: Only owner can delete
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
   }
 }
 
