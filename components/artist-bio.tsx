@@ -24,6 +24,7 @@ const PLATFORM_LOGOS: Record<string, string> = {
   pandora: "https://services.linkfire.com/logo_pandora_onlight.svg",
   bandcamp: "https://services.linkfire.com/logo_bandcamp_onlight.svg",
   twitch: "https://services.linkfire.com/logo_twitch_onlight.svg",
+  "text-me": "https://services.linkfire.com/logo_text-me_onlight.svg",
 };
 
 export default function ArtistBio({ artist }: ArtistBioProps) {
@@ -31,6 +32,44 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"success" | "error" | null>(null);
   const [submitMessage, setSubmitMessage] = useState("");
+  const [showFullBio, setShowFullBio] = useState(false);
+
+  useEffect(() => {
+    // Neon flicker effect for logo-container
+    const neonFlicker = () => {
+      const logoContainer = document.querySelector('.logo-container');
+      if (!logoContainer) return;
+
+      const flickerIntensities = [
+        'drop-shadow(0 0 5px rgba(80, 250, 254, 0.4))',
+        'drop-shadow(0 0 8px rgba(80, 250, 254, 0.5))',
+        'drop-shadow(0 0 10px rgba(80, 250, 254, 0.6))',
+        'drop-shadow(0 0 6px rgba(80, 250, 254, 0.45))',
+        'drop-shadow(0 0 9px rgba(80, 250, 254, 0.55))',
+        'drop-shadow(0 0 7px rgba(80, 250, 254, 0.5))',
+        'drop-shadow(0 0 8px rgba(80, 250, 254, 0.5))',
+        'drop-shadow(0 0 6px rgba(80, 250, 254, 0.45))'
+      ];
+
+      const opacityValues = [0.95, 0.98, 1.0, 0.97, 0.99, 0.96, 1.0, 0.98];
+      
+      function flicker() {
+        if (logoContainer && (logoContainer as HTMLElement).style.display !== 'none') {
+          const randomIntensity = flickerIntensities[Math.floor(Math.random() * flickerIntensities.length)];
+          const randomOpacity = opacityValues[Math.floor(Math.random() * opacityValues.length)];
+          (logoContainer as HTMLElement).style.filter = randomIntensity;
+          (logoContainer as HTMLElement).style.opacity = String(randomOpacity);
+        }
+        
+        const nextFlicker = 50 + Math.random() * 150;
+        setTimeout(flicker, nextFlicker);
+      }
+      
+      setTimeout(flicker, 1000);
+    };
+
+    neonFlicker();
+  }, []);
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,8 +85,6 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
     setSubmitMessage("");
 
     try {
-      // Check if email already exists for this artist
-      // Structure: newsletter/{artistName}/emails/{emailId}
       const newsletterRef = collection(db, "newsletter", artist.name, "emails");
       const q = query(newsletterRef, where("email", "==", email.toLowerCase().trim()));
       const existingEmails = await getDocs(q);
@@ -59,7 +96,6 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
         return;
       }
 
-      // Add email to newsletter collection
       await addDoc(newsletterRef, {
         email: email.toLowerCase().trim(),
         subscribedAt: new Date(),
@@ -83,6 +119,14 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
     const normalizedPlatform = platform.toLowerCase().replace(/\s+/g, "-");
     return PLATFORM_LOGOS[normalizedPlatform] || "https://services.linkfire.com/logo_spotify_onlight.svg";
   };
+
+  const toggleBio = () => {
+    setShowFullBio(!showFullBio);
+  };
+
+  // Split bio into preview and full text (first 100 chars as preview)
+  const bioPreview = artist.bio ? artist.bio.substring(0, 100) : "";
+  const bioFull = artist.bio && artist.bio.length > 100 ? artist.bio.substring(100) : "";
 
   return (
     <>
@@ -200,7 +244,7 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
           align-items: center;
         }
 
-        .newsletter-form form {
+        .newsletter-form #mc_embed_signup_scroll {
           display: flex;
           flex-direction: row;
           flex-wrap: wrap;
@@ -209,12 +253,21 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
           align-items: flex-start;
         }
 
-        .newsletter-form .email-input {
-          flex: 1;
-          min-width: 200px;
+        .newsletter-form #mce-responses {
+          flex-basis: 100%;
+          order: 3;
         }
 
-        .newsletter-form input[type="email"] {
+        .newsletter-form .mc-field-group {
+          order: 1;
+        }
+
+        .newsletter-form .clear {
+          order: 2;
+        }
+
+        .newsletter-form input[type="email"],
+        .newsletter-form #mce-EMAIL {
           width: 100%;
           padding: 1rem;
           border: 2px solid rgba(241, 241, 241, 0.2);
@@ -226,17 +279,21 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
           transition: all 0.3s ease;
         }
 
-        .newsletter-form input[type="email"]::placeholder {
+        .newsletter-form input[type="email"]::placeholder,
+        .newsletter-form #mce-EMAIL::placeholder {
           color: rgba(241, 241, 241, 0.5);
         }
 
-        .newsletter-form input[type="email"]:focus {
+        .newsletter-form input[type="email"]:focus,
+        .newsletter-form #mce-EMAIL:focus {
           outline: none;
           border-color: var(--accent);
           background: rgba(253, 252, 252, 0.15);
         }
 
-        .newsletter-form button[type="submit"] {
+        .newsletter-form input[type="submit"],
+        .newsletter-form #mc-embedded-subscribe {
+          width: 100%;
           padding: 1rem 2rem;
           background: var(--accent);
           color: #ffffff;
@@ -247,37 +304,59 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
           font-weight: 600;
           cursor: pointer;
           transition: all 0.3s ease;
-          white-space: nowrap;
         }
 
-        .newsletter-form button[type="submit"]:hover:not(:disabled) {
+        .newsletter-form input[type="submit"]:hover,
+        .newsletter-form #mc-embedded-subscribe:hover {
           background: #1ed760;
           transform: translateY(-2px);
           box-shadow: 0 5px 15px rgba(29, 185, 84, 0.3);
         }
 
-        .newsletter-form button[type="submit"]:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
+        .newsletter-form .mc-field-group {
+          flex: 1;
         }
 
-        .newsletter-form .response {
-          flex-basis: 100%;
+        .newsletter-form .clear {
+          flex-shrink: 0;
+        }
+
+        .newsletter-form input[type="email"],
+        .newsletter-form #mce-EMAIL {
+          width: 100%;
+        }
+
+        .newsletter-form input[type="submit"],
+        .newsletter-form #mc-embedded-subscribe {
+          width: auto;
+          min-width: 150px;
+          white-space: nowrap;
+        }
+
+        .newsletter-form #mce-responses {
           text-align: center;
           margin-top: 1rem;
+        }
+
+        .newsletter-form #mce-error-response,
+        .newsletter-form #mce-success-response {
           padding: 0.75rem;
           border-radius: 0.5rem;
           font-size: 0.9rem;
         }
 
-        .newsletter-form .response.success {
+        .newsletter-form #mce-error-response {
+          background: rgba(255, 0, 0, 0.2);
+          color: #ff6b6b;
+        }
+
+        .newsletter-form #mce-success-response {
           background: rgba(29, 185, 84, 0.2);
           color: #1ed760;
         }
 
-        .newsletter-form .response.error {
-          background: rgba(255, 0, 0, 0.2);
-          color: #ff6b6b;
+        #mc_embed_signup_scroll {
+          width: 100%;
         }
 
         .newsletter-divider {
@@ -290,24 +369,6 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
           transform: translateY(20px);
           animation: fadeInUp 0.8s ease forwards;
           animation-delay: 0.5s;
-        }
-
-        .bio-section {
-          width: 100%;
-          max-width: 800px;
-          margin-bottom: 3rem;
-          text-align: center;
-          opacity: 0;
-          transform: translateY(20px);
-          animation: fadeInUp 0.8s ease forwards;
-          animation-delay: 0.2s;
-        }
-
-        .bio-text {
-          color: var(--text-light);
-          font-size: 1rem;
-          line-height: 1.6;
-          margin-bottom: 0.5rem;
         }
 
         .platforms {
@@ -370,6 +431,89 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
           height: auto;
         }
 
+        .new-badge {
+          position: absolute;
+          top: -8px;
+          right: -8px;
+          background: #ff0000;
+          color: #ffffff;
+          font-size: 0.65rem;
+          font-weight: 800;
+          padding: 0.25rem 0.5rem;
+          border-radius: 0.5rem;
+          text-transform: uppercase;
+          z-index: 10;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .new {
+          animation: zoomInOut 1.5s ease-in-out infinite;
+        }
+
+        @keyframes zoomInOut {
+          0%, 100% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.1);
+          }
+        }
+
+        .bio-section {
+          width: 100%;
+          max-width: 800px;
+          margin-bottom: 3rem;
+          text-align: center;
+          opacity: 0;
+          transform: translateY(20px);
+          animation: fadeInUp 0.8s ease forwards;
+          animation-delay: 0.2s;
+        }
+
+        .bio-text {
+          color: var(--text-light);
+          font-size: 1rem;
+          line-height: 1.6;
+          margin-bottom: 0.5rem;
+        }
+
+        .bio-full {
+          display: none;
+          opacity: 0;
+          transform: translateY(-10px);
+          transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .bio-full.show {
+          display: inline;
+          animation: fadeInSlide 0.6s ease forwards;
+        }
+
+        @keyframes fadeInSlide {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .read-more {
+          color: #ffffff;
+          cursor: pointer;
+          text-decoration: underline;
+          font-weight: 600;
+          margin-left: 0.25rem;
+          transition: all 0.3s ease;
+        }
+
+        .read-more:hover {
+          opacity: 0.7;
+          transform: scale(1.05);
+        }
+
         .copyright {
           text-align: center;
           color: rgba(241, 241, 241, 0.6);
@@ -422,6 +566,10 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
             opacity: 1;
             transform: translateX(-50%);
           }
+        }
+
+        .photo-container {
+          position: relative;
         }
 
         .logo {
@@ -497,11 +645,15 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
             margin-bottom: 1rem;
           }
 
-          .newsletter-form form {
-            flex-direction: column;
+          .newsletter-form .clear {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
 
-          .newsletter-form button[type="submit"] {
+          .newsletter-form input[type="submit"],
+          .newsletter-form #mc-embedded-subscribe {
             width: 50px;
             height: 50px;
             padding: 0;
@@ -522,9 +674,12 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
             transition: none;
           }
 
-          .newsletter-form button[type="submit"]:hover:not(:disabled),
-          .newsletter-form button[type="submit"]:active:not(:disabled),
-          .newsletter-form button[type="submit"]:focus:not(:disabled) {
+          .newsletter-form input[type="submit"]:hover,
+          .newsletter-form input[type="submit"]:active,
+          .newsletter-form input[type="submit"]:focus,
+          .newsletter-form #mc-embedded-subscribe:hover,
+          .newsletter-form #mc-embedded-subscribe:active,
+          .newsletter-form #mc-embedded-subscribe:focus {
             transform: none;
             box-shadow: none;
             background: #ffffff;
@@ -540,16 +695,6 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
 
           .platform-divider {
             margin: 0.75rem 0;
-          }
-
-          .platforms {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-          }
-
-          .platform-tile {
-            width: 100%;
           }
         }
       `}</style>
@@ -580,33 +725,77 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
         </div>
 
         <div className="newsletter-section">
-          <form onSubmit={handleNewsletterSubmit} className="newsletter-form">
-            <div className="email-input">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                required
-                disabled={isSubmitting}
-              />
+          <div id="mc_embed_shell">
+            <div id="mc_embed_signup">
+              <form onSubmit={handleNewsletterSubmit} className="validate newsletter-form" noValidate>
+                <div id="mc_embed_signup_scroll">
+                  <div className="indicates-required" style={{ display: 'none' }}>
+                    <span className="asterisk">*</span> indicates required
+                  </div>
+                  <div className="mc-field-group">
+                    <label htmlFor="mce-EMAIL" style={{ display: 'none' }}>
+                      Email Address <span className="asterisk">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      name="EMAIL"
+                      className="required email"
+                      id="mce-EMAIL"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      disabled={isSubmitting}
+                    />
+                    <span id="mce-EMAIL-HELPERTEXT" className="helper_text" style={{ display: 'none' }}>
+                      Required Field
+                    </span>
+                  </div>
+                  <div id="mce-responses" className="clear">
+                    <div className="response" id="mce-error-response" style={{ display: submitStatus === 'error' ? 'block' : 'none' }}>
+                      {submitStatus === 'error' && submitMessage}
+                    </div>
+                    <div className="response" id="mce-success-response" style={{ display: submitStatus === 'success' ? 'block' : 'none' }}>
+                      {submitStatus === 'success' && submitMessage}
+                    </div>
+                  </div>
+                  <div style={{ position: 'absolute', left: '-5000px' }} aria-hidden="true">
+                    <input type="text" name="b_placeholder" tabIndex={-1} value="" />
+                  </div>
+                  <div className="clear">
+                    <input
+                      type="submit"
+                      name="subscribe"
+                      id="mc-embedded-subscribe"
+                      className="button"
+                      value={isSubmitting ? "Subscribing..." : "Subscribe"}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                </div>
+              </form>
             </div>
-            <button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Subscribing..." : "Subscribe"}
-            </button>
-            {submitStatus && (
-              <div className={`response ${submitStatus}`}>
-                {submitMessage}
-              </div>
-            )}
-          </form>
+          </div>
         </div>
 
         <div className="newsletter-divider"></div>
 
         {artist.bio && (
           <div className="bio-section">
-            <p className="bio-text">{artist.bio}</p>
+            <p className="bio-text">
+              {bioFull ? (
+                <>
+                  <span className="bio-preview">{bioPreview}</span>
+                  <span className={`bio-full ${showFullBio ? 'show' : ''}`}>{bioFull}</span>
+                  {!showFullBio && <span className="bio-ellipsis">...</span>}
+                  <span className="read-more" onClick={toggleBio}>
+                    {showFullBio ? 'Read Less' : 'Read More'}
+                  </span>
+                </>
+              ) : (
+                artist.bio
+              )}
+            </p>
           </div>
         )}
 
@@ -631,6 +820,9 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
               <img src={getPlatformLogo(link.platform)} alt={link.platform} />
             </a>
           ))}
+          {(artist.website || (artist.socialLinks && artist.socialLinks.length > 0)) && (
+            <div className="platform-divider"></div>
+          )}
         </div>
 
         <div className="copyright">
@@ -640,4 +832,3 @@ export default function ArtistBio({ artist }: ArtistBioProps) {
     </>
   );
 }
-
