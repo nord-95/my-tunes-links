@@ -52,6 +52,35 @@ export default function ArtistsPage() {
       const artistsData = snapshot.docs.map((doc) => {
         const data = doc.data();
         console.log("Artist doc:", doc.id, data);
+        
+        // Handle createdAt - could be Timestamp, Date, or null
+        let createdAt: Date;
+        if (data.createdAt) {
+          if (data.createdAt.toDate && typeof data.createdAt.toDate === 'function') {
+            createdAt = data.createdAt.toDate();
+          } else if (data.createdAt instanceof Date) {
+            createdAt = data.createdAt;
+          } else {
+            createdAt = new Date(data.createdAt);
+          }
+        } else {
+          createdAt = new Date();
+        }
+        
+        // Handle updatedAt - could be Timestamp, Date, or null
+        let updatedAt: Date;
+        if (data.updatedAt) {
+          if (data.updatedAt.toDate && typeof data.updatedAt.toDate === 'function') {
+            updatedAt = data.updatedAt.toDate();
+          } else if (data.updatedAt instanceof Date) {
+            updatedAt = data.updatedAt;
+          } else {
+            updatedAt = new Date(data.updatedAt);
+          }
+        } else {
+          updatedAt = new Date();
+        }
+        
         return {
           id: doc.id,
           userId: data.userId,
@@ -62,8 +91,8 @@ export default function ArtistsPage() {
           website: data.website,
           socialLinks: data.socialLinks,
           newsletterEmails: data.newsletterEmails || [],
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date(),
+          createdAt,
+          updatedAt,
         } as Artist;
       });
       
