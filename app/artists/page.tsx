@@ -15,6 +15,7 @@ export default function ArtistsPage() {
   const [user, setUser] = useState<any>(null);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -24,51 +25,61 @@ export default function ArtistsPage() {
         await loadArtists(currentUser.uid);
       } else {
         router.push("/auth");
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
   }, [router]);
 
   const loadArtists = async (userId: string) => {
+    setError(null);
     try {
+      console.log("Loading artists for user:", userId);
+      // Try simple query first (no orderBy to avoid index requirement)
       const artistsRef = collection(db, "artists");
-      const q = query(
-        artistsRef,
-        where("userId", "==", userId),
-        orderBy("createdAt", "desc")
-      );
+      const q = query(artistsRef, where("userId", "==", userId));
       const snapshot = await getDocs(q);
-      const artistsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-        updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-      })) as Artist[];
-      setArtists(artistsData);
-    } catch (error: any) {
-      if (error.code === "failed-precondition" && error.message?.includes("index")) {
-        console.log("Index is still building. Please wait a moment and refresh.");
-        try {
-          const artistsRef = collection(db, "artists");
-          const q = query(artistsRef, where("userId", "==", userId));
-          const snapshot = await getDocs(q);
-          const artistsData = snapshot.docs
-            .map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-              createdAt: doc.data().createdAt?.toDate() || new Date(),
-              updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-            })) as Artist[];
-          artistsData.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-          setArtists(artistsData);
-        } catch (fallbackError) {
-          console.error("Error loading artists:", fallbackError);
-        }
-      } else {
-        console.error("Error loading artists:", error);
+      console.log("Artists query result:", snapshot.docs.length, "documents");
+      
+      if (snapshot.empty) {
+        console.log("No artists found for user");
+        setArtists([]);
+        setLoading(false);
+        return;
       }
+      
+      const artistsData = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        console.log("Artist doc:", doc.id, data);
+        return {
+          id: doc.id,
+          userId: data.userId,
+          name: data.name,
+          slug: data.slug,
+          bio: data.bio,
+          profileImageUrl: data.profileImageUrl,
+          website: data.website,
+          socialLinks: data.socialLinks,
+          newsletterEmails: data.newsletterEmails || [],
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        } as Artist;
+      });
+      
+      // Sort client-side
+      artistsData.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      
+      console.log("Parsed artists:", artistsData);
+      setArtists(artistsData);
+      setLoading(false);
+    } catch (error: any) {
+      console.error("Error loading artists:", error);
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
+      setError(error.message || "Failed to load artists");
+      setArtists([]);
+      setLoading(false);
     }
   };
 
@@ -99,7 +110,22 @@ export default function ArtistsPage() {
           </Button>
         </div>
 
-        {artists.length === 0 ? (
+        {error && (
+          <Card className="border-destructive">
+            <CardContent className="py-4">
+              <p className="text-destructive">Error: {error}</p>
+              <Button
+                variant="outline"
+                className="mt-2"
+                onClick={() => user && loadArtists(user.uid)}
+              >
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {!error && artists.length === 0 && !loading ? (
           <Card>
             <CardContent className="py-12 text-center">
               <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -115,7 +141,7 @@ export default function ArtistsPage() {
               </Button>
             </CardContent>
           </Card>
-        ) : (
+        ) : !error && artists.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {artists.map((artist) => (
               <Card

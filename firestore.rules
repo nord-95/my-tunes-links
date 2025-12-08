@@ -124,6 +124,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       
       // Create: User must be authenticated and the userId must match their auth uid
+      // Similar to releases - check required fields exist but don't enforce strict types
       allow create: if isAuthenticated() 
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.keys().hasAll(['userId', 'name', 'slug', 'createdAt', 'updatedAt'])
@@ -133,8 +134,7 @@ service cloud.firestore {
       // Update: Only owner can update, and userId cannot be changed
       allow update: if isAuthenticated() 
         && resource.data.userId == request.auth.uid
-        && request.resource.data.userId == resource.data.userId
-        && request.resource.data.updatedAt is timestamp;
+        && request.resource.data.userId == resource.data.userId;
       
       // Delete: Only owner can delete
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
