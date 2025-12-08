@@ -120,8 +120,8 @@ service cloud.firestore {
     
     // Artists collection - users can only manage their own artists
     match /artists/{artistId} {
-      // Read: Authenticated users can read their own artists
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Read: Allow public read for artist bio pages, or authenticated users can read their own artists
+      allow read: if true; // Public read for bio pages
       
       // Create: User must be authenticated and the userId must match their auth uid
       // Similar to releases - check required fields exist but don't enforce strict types
@@ -138,6 +138,28 @@ service cloud.firestore {
       
       // Delete: Only owner can delete
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // Newsletter collection - for storing newsletter subscriptions
+    // Structure: newsletter/{artistName}/emails/{emailId}
+    match /newsletter/{artistName}/emails/{emailId} {
+      // Read: Only the artist owner can read emails
+      allow read: if isAuthenticated() 
+        && exists(/databases/$(database)/documents/artists/$(resource.data.artistId))
+        && get(/databases/$(database)/documents/artists/$(resource.data.artistId)).data.userId == request.auth.uid;
+      
+      // Create: Anyone can subscribe to newsletter (public)
+      allow create: if request.resource.data.keys().hasAll(['email', 'subscribedAt', 'artistName', 'artistId'])
+        && request.resource.data.email is string
+        && request.resource.data.subscribedAt is timestamp
+        && request.resource.data.artistName is string
+        && request.resource.data.artistId is string;
+      
+      // Update/Delete: Only artist owner can manage subscriptions
+      allow update, delete: if isAuthenticated()
+        && resource.data.artistId is string
+        && exists(/databases/$(database)/documents/artists/$(resource.data.artistId))
+        && get(/databases/$(database)/documents/artists/$(resource.data.artistId)).data.userId == request.auth.uid;
     }
   }
 }
