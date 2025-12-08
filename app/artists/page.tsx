@@ -52,32 +52,69 @@ export default function ArtistsPage() {
       const artistsData = snapshot.docs.map((doc) => {
         const data = doc.data();
         console.log("Artist doc:", doc.id, data);
+        console.log("createdAt type:", typeof data.createdAt, data.createdAt);
+        console.log("createdAt keys:", data.createdAt ? Object.keys(data.createdAt) : 'null');
         
-        // Handle createdAt - could be Timestamp, Date, or null
+        // Handle createdAt - Firestore Timestamp has toDate() method
         let createdAt: Date;
-        if (data.createdAt) {
-          if (data.createdAt.toDate && typeof data.createdAt.toDate === 'function') {
-            createdAt = data.createdAt.toDate();
-          } else if (data.createdAt instanceof Date) {
-            createdAt = data.createdAt;
+        try {
+          if (data.createdAt) {
+            // Check if it's a Firestore Timestamp (has toDate method)
+            if (data.createdAt.toDate && typeof data.createdAt.toDate === 'function') {
+              createdAt = data.createdAt.toDate();
+            } 
+            // Check if it has seconds property (Firestore Timestamp)
+            else if (data.createdAt.seconds !== undefined) {
+              createdAt = new Date(data.createdAt.seconds * 1000);
+            }
+            // Check if it's already a Date
+            else if (data.createdAt instanceof Date) {
+              createdAt = data.createdAt;
+            }
+            // Try to create Date from value
+            else {
+              createdAt = new Date(data.createdAt);
+            }
           } else {
-            createdAt = new Date(data.createdAt);
+            createdAt = new Date();
           }
-        } else {
+          
+          // Validate the date
+          if (isNaN(createdAt.getTime())) {
+            console.warn("Invalid createdAt, using current date");
+            createdAt = new Date();
+          }
+        } catch (e) {
+          console.error("Error converting createdAt:", e);
           createdAt = new Date();
         }
         
-        // Handle updatedAt - could be Timestamp, Date, or null
+        // Handle updatedAt - same logic
         let updatedAt: Date;
-        if (data.updatedAt) {
-          if (data.updatedAt.toDate && typeof data.updatedAt.toDate === 'function') {
-            updatedAt = data.updatedAt.toDate();
-          } else if (data.updatedAt instanceof Date) {
-            updatedAt = data.updatedAt;
+        try {
+          if (data.updatedAt) {
+            if (data.updatedAt.toDate && typeof data.updatedAt.toDate === 'function') {
+              updatedAt = data.updatedAt.toDate();
+            } 
+            else if (data.updatedAt.seconds !== undefined) {
+              updatedAt = new Date(data.updatedAt.seconds * 1000);
+            }
+            else if (data.updatedAt instanceof Date) {
+              updatedAt = data.updatedAt;
+            }
+            else {
+              updatedAt = new Date(data.updatedAt);
+            }
           } else {
-            updatedAt = new Date(data.updatedAt);
+            updatedAt = new Date();
           }
-        } else {
+          
+          if (isNaN(updatedAt.getTime())) {
+            console.warn("Invalid updatedAt, using current date");
+            updatedAt = new Date();
+          }
+        } catch (e) {
+          console.error("Error converting updatedAt:", e);
           updatedAt = new Date();
         }
         
