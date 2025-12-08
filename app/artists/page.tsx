@@ -51,72 +51,67 @@ export default function ArtistsPage() {
       
       const artistsData = snapshot.docs.map((doc) => {
         const data = doc.data();
-        console.log("Artist doc:", doc.id, data);
-        console.log("createdAt type:", typeof data.createdAt, data.createdAt);
-        console.log("createdAt keys:", data.createdAt ? Object.keys(data.createdAt) : 'null');
         
-        // Handle createdAt - Firestore Timestamp has toDate() method
-        let createdAt: Date;
-        try {
-          if (data.createdAt) {
-            // Check if it's a Firestore Timestamp (has toDate method)
-            if (data.createdAt.toDate && typeof data.createdAt.toDate === 'function') {
-              createdAt = data.createdAt.toDate();
-            } 
-            // Check if it has seconds property (Firestore Timestamp)
-            else if (data.createdAt.seconds !== undefined) {
-              createdAt = new Date(data.createdAt.seconds * 1000);
-            }
-            // Check if it's already a Date
-            else if (data.createdAt instanceof Date) {
-              createdAt = data.createdAt;
-            }
-            // Try to create Date from value
-            else {
-              createdAt = new Date(data.createdAt);
-            }
-          } else {
-            createdAt = new Date();
+        // Helper function to convert Firestore Timestamp to Date
+        const convertTimestamp = (timestamp: any): Date => {
+          if (!timestamp) {
+            return new Date();
           }
           
-          // Validate the date
-          if (isNaN(createdAt.getTime())) {
-            console.warn("Invalid createdAt, using current date");
-            createdAt = new Date();
-          }
-        } catch (e) {
-          console.error("Error converting createdAt:", e);
-          createdAt = new Date();
-        }
-        
-        // Handle updatedAt - same logic
-        let updatedAt: Date;
-        try {
-          if (data.updatedAt) {
-            if (data.updatedAt.toDate && typeof data.updatedAt.toDate === 'function') {
-              updatedAt = data.updatedAt.toDate();
-            } 
-            else if (data.updatedAt.seconds !== undefined) {
-              updatedAt = new Date(data.updatedAt.seconds * 1000);
+          // Check if it's already a Date
+          if (timestamp instanceof Date) {
+            if (!isNaN(timestamp.getTime())) {
+              return timestamp;
             }
-            else if (data.updatedAt instanceof Date) {
-              updatedAt = data.updatedAt;
-            }
-            else {
-              updatedAt = new Date(data.updatedAt);
-            }
-          } else {
-            updatedAt = new Date();
+            return new Date();
           }
           
-          if (isNaN(updatedAt.getTime())) {
-            console.warn("Invalid updatedAt, using current date");
-            updatedAt = new Date();
+          // Check if it's an empty object (no enumerable properties)
+          if (typeof timestamp === 'object' && Object.keys(timestamp).length === 0) {
+            return new Date();
           }
-        } catch (e) {
-          console.error("Error converting updatedAt:", e);
-          updatedAt = new Date();
-        }
+          
+          // Try toDate() method first (Firestore Timestamp)
+          if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp && typeof timestamp.toDate === 'function') {
+            try {
+              const date = timestamp.toDate();
+              if (date instanceof Date && !isNaN(date.getTime())) {
+                return date;
+              }
+            } catch (e) {
+              // Continue to other methods
+            }
+          }
+          
+          // Check for seconds property (Firestore Timestamp format)
+          if (typeof timestamp === 'object' && 'seconds' in timestamp && typeof timestamp.seconds === 'number') {
+            const date = new Date(timestamp.seconds * 1000);
+            if (!isNaN(date.getTime())) {
+              return date;
+            }
+          }
+          
+          // Check for _seconds (internal Firestore property)
+          if (typeof timestamp === 'object' && '_seconds' in timestamp && typeof (timestamp as any)._seconds === 'number') {
+            const date = new Date((timestamp as any)._seconds * 1000);
+            if (!isNaN(date.getTime())) {
+              return date;
+            }
+          }
+          
+          // Try to create Date from the value itself
+          try {
+            const date = new Date(timestamp);
+            if (!isNaN(date.getTime())) {
+              return date;
+            }
+          } catch (e) {
+            // Ignore
+          }
+          
+          // If all else fails, return current date
+          return new Date();
+        };
         
         return {
           id: doc.id,
@@ -128,8 +123,8 @@ export default function ArtistsPage() {
           website: data.website,
           socialLinks: data.socialLinks,
           newsletterEmails: data.newsletterEmails || [],
-          createdAt,
-          updatedAt,
+          createdAt: convertTimestamp(data.createdAt),
+          updatedAt: convertTimestamp(data.updatedAt),
         } as Artist;
       });
       
