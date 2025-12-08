@@ -125,83 +125,87 @@ export default function ArtistsPage() {
           </Card>
         )}
 
-        {!error && artists.length === 0 && !loading ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground text-lg">
-                No artists yet. Create your first artist to get started!
-              </p>
-              <Button
-                className="mt-4"
-                onClick={() => router.push("/artists/new")}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Artist
-              </Button>
-            </CardContent>
-          </Card>
-        ) : !error && artists.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {artists.map((artist) => (
-              <Card
-                key={artist.id}
-                className="overflow-hidden hover:shadow-lg transition-shadow"
-              >
-                <div className="relative aspect-square w-full bg-muted flex items-center justify-center">
-                  {artist.profileImageUrl ? (
-                    <img
-                      src={artist.profileImageUrl}
-                      alt={artist.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User className="h-16 w-16 text-muted-foreground" />
-                  )}
-                </div>
-                <CardContent className="p-4">
-                  <div className="mb-3">
-                    <h3 className="font-semibold text-lg truncate">
-                      {artist.name}
-                    </h3>
-                    {artist.bio && (
-                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                        {artist.bio}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => router.push(`/artist/${artist.id}`)}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      Details
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => router.push(`/artist/edit/${artist.id}`)}
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                  </div>
-
-                  <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
-                    <p>Created: {formatDate(artist.createdAt)}</p>
-                    {artist.newsletterEmails && artist.newsletterEmails.length > 0 && (
-                      <p>Newsletter: {artist.newsletterEmails.length} emails</p>
-                    )}
-                  </div>
+        {!error && !loading && (
+          <>
+            {artists.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground text-lg">
+                    No artists yet. Create your first artist to get started!
+                  </p>
+                  <Button
+                    className="mt-4"
+                    onClick={() => router.push("/artists/new")}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Artist
+                  </Button>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {artists.map((artist) => (
+                  <Card
+                    key={artist.id}
+                    className="overflow-hidden hover:shadow-lg transition-shadow"
+                  >
+                    <div className="relative aspect-square w-full bg-muted flex items-center justify-center">
+                      {artist.profileImageUrl ? (
+                        <img
+                          src={artist.profileImageUrl}
+                          alt={artist.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="h-16 w-16 text-muted-foreground" />
+                      )}
+                    </div>
+                    <CardContent className="p-4">
+                      <div className="mb-3">
+                        <h3 className="font-semibold text-lg truncate">
+                          {artist.name}
+                        </h3>
+                        {artist.bio && (
+                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                            {artist.bio}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => router.push(`/artist/${artist.id}`)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Details
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => router.push(`/artist/edit/${artist.id}`)}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                      </div>
+
+                      <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
+                        <p>Created: {formatDate(artist.createdAt)}</p>
+                        {artist.newsletterEmails && artist.newsletterEmails.length > 0 && (
+                          <p>Newsletter: {artist.newsletterEmails.length} emails</p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
