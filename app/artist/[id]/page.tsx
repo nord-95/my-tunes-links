@@ -48,6 +48,68 @@ export default function ArtistDetailsPage() {
       
       if (artistDoc.exists()) {
         const data = artistDoc.data();
+        
+        // Helper function to convert Firestore Timestamp to Date
+        const convertTimestamp = (timestamp: any): Date => {
+          if (!timestamp) {
+            return new Date();
+          }
+          
+          // Check if it's already a Date
+          if (timestamp instanceof Date) {
+            if (!isNaN(timestamp.getTime())) {
+              return timestamp;
+            }
+            return new Date();
+          }
+          
+          // Check if it's an empty object (no enumerable properties)
+          if (typeof timestamp === 'object' && Object.keys(timestamp).length === 0) {
+            return new Date();
+          }
+          
+          // Try toDate() method first (Firestore Timestamp)
+          if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp && typeof timestamp.toDate === 'function') {
+            try {
+              const date = timestamp.toDate();
+              if (date instanceof Date && !isNaN(date.getTime())) {
+                return date;
+              }
+            } catch (e) {
+              // Continue to other methods
+            }
+          }
+          
+          // Check for seconds property (Firestore Timestamp format)
+          if (typeof timestamp === 'object' && 'seconds' in timestamp && typeof timestamp.seconds === 'number') {
+            const date = new Date(timestamp.seconds * 1000);
+            if (!isNaN(date.getTime())) {
+              return date;
+            }
+          }
+          
+          // Check for _seconds (internal Firestore property)
+          if (typeof timestamp === 'object' && '_seconds' in timestamp && typeof (timestamp as any)._seconds === 'number') {
+            const date = new Date((timestamp as any)._seconds * 1000);
+            if (!isNaN(date.getTime())) {
+              return date;
+            }
+          }
+          
+          // Try to create Date from the value itself
+          try {
+            const date = new Date(timestamp);
+            if (!isNaN(date.getTime())) {
+              return date;
+            }
+          } catch (e) {
+            // Ignore
+          }
+          
+          // If all else fails, return current date
+          return new Date();
+        };
+        
         const artistData: Artist = {
           id: artistDoc.id,
           userId: data.userId,
@@ -58,8 +120,8 @@ export default function ArtistDetailsPage() {
           website: data.website,
           socialLinks: data.socialLinks,
           newsletterEmails: data.newsletterEmails || [],
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date(),
+          createdAt: convertTimestamp(data.createdAt),
+          updatedAt: convertTimestamp(data.updatedAt),
         };
         
         if (artistData.userId !== user.uid) {
