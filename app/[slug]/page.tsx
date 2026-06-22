@@ -353,7 +353,9 @@ export async function generateMetadata({
   const metadata: Metadata = {
     title: ogTitle,
     description: ogDescription,
-    // Always emit icons so crawlers/browsers see a favicon
+    // noindex: link pages are redirectors, not content — Google shouldn't index them.
+    // Facebook/Twitter crawlers ignore robots meta and read OG tags regardless.
+    robots: { index: false, follow: false },
     icons: {
       icon: [{ url: iconUrl }],
       shortcut: [iconUrl],
