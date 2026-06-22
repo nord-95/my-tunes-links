@@ -5,11 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Artist } from "@/lib/types";
 import ArtistForm from "@/components/artist-form";
+import AppLayout from "@/components/app-layout";
 import { ArrowLeft } from "lucide-react";
 
 export default function EditArtistPage() {
@@ -170,39 +170,25 @@ export default function EditArtistPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="container mx-auto max-w-4xl space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            onClick={() => router.push(`/artist/${artist.id}`)}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Artist
-          </Button>
+    <AppLayout
+      title={`Edit: ${artist.name}`}
+      action={
+        <Button size="sm" variant="outline" onClick={() => router.push(`/artist/${artist.id}`)}>
+          <ArrowLeft className="h-4 w-4 mr-1.5" />
+          Back
+        </Button>
+      }
+    >
+      <div className="max-w-2xl">
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <ArtistForm
+            initialData={artist}
+            onSuccess={() => router.push(`/artist/${artist.id}`)}
+            onCancel={() => router.push(`/artist/${artist.id}`)}
+          />
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Edit Artist</CardTitle>
-            <CardDescription>
-              Editing: {artist.name}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ArtistForm
-              initialData={artist}
-              onSuccess={() => {
-                router.push(`/artist/${artist.id}`);
-              }}
-              onCancel={() => {
-                router.push(`/artist/${artist.id}`);
-              }}
-            />
-          </CardContent>
-        </Card>
       </div>
-    </div>
+    </AppLayout>
   );
 }
 

@@ -5,11 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Link as LinkType } from "@/lib/types";
 import LinkForm from "@/components/link-form";
+import AppLayout from "@/components/app-layout";
 import { ArrowLeft } from "lucide-react";
 
 export default function EditLinkPage() {
@@ -128,39 +128,25 @@ export default function EditLinkPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="container mx-auto max-w-4xl space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            onClick={() => router.push(`/link/${link.id}`)}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Link
-          </Button>
+    <AppLayout
+      title={`Edit: ${link.title}`}
+      action={
+        <Button size="sm" variant="outline" onClick={() => router.push(`/link/${link.id}`)}>
+          <ArrowLeft className="h-4 w-4 mr-1.5" />
+          Back
+        </Button>
+      }
+    >
+      <div className="max-w-2xl">
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <LinkForm
+            initialData={link}
+            onSuccess={() => router.push(`/link/${link.id}`)}
+            onCancel={() => router.push(`/link/${link.id}`)}
+          />
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Edit Link</CardTitle>
-            <CardDescription>
-              Editing: {link.title}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <LinkForm
-              initialData={link}
-              onSuccess={() => {
-                router.push(`/link/${link.id}`);
-              }}
-              onCancel={() => {
-                router.push(`/link/${link.id}`);
-              }}
-            />
-          </CardContent>
-        </Card>
       </div>
-    </div>
+    </AppLayout>
   );
 }
 

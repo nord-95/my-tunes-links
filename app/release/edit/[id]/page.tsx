@@ -5,11 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Release } from "@/lib/types";
 import ReleaseForm from "@/components/release-form";
+import AppLayout from "@/components/app-layout";
 import { ArrowLeft } from "lucide-react";
 
 export default function EditReleasePage() {
@@ -121,39 +121,25 @@ export default function EditReleasePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="container mx-auto max-w-4xl space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            onClick={() => router.push(`/release/${release.id}`)}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Release
-          </Button>
+    <AppLayout
+      title={`Edit: ${release.releaseName}`}
+      action={
+        <Button size="sm" variant="outline" onClick={() => router.push(`/release/${release.id}`)}>
+          <ArrowLeft className="h-4 w-4 mr-1.5" />
+          Back
+        </Button>
+      }
+    >
+      <div className="max-w-2xl">
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <ReleaseForm
+            initialData={release}
+            onSuccess={() => router.push(`/release/${release.id}`)}
+            onCancel={() => router.push(`/release/${release.id}`)}
+          />
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Edit Release</CardTitle>
-            <CardDescription>
-              Editing: {release.artistName} - {release.releaseName}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ReleaseForm
-              initialData={release}
-              onSuccess={() => {
-                router.push(`/release/${release.id}`);
-              }}
-              onCancel={() => {
-                router.push(`/release/${release.id}`);
-              }}
-            />
-          </CardContent>
-        </Card>
       </div>
-    </div>
+    </AppLayout>
   );
 }
 

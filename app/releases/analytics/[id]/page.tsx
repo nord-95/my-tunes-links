@@ -11,7 +11,8 @@ import { ReleaseClick, Release } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft, Music } from "lucide-react";
+import AppLayout from "@/components/app-layout";
+import { ArrowLeft } from "lucide-react";
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00c49f', '#ffbb28', '#ff8042'];
 
@@ -442,36 +443,28 @@ export default function ReleaseAnalyticsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="container mx-auto space-y-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push("/")}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-            </div>
-            <h1 className="text-3xl font-bold">Release Analytics</h1>
-            <p className="text-muted-foreground mt-1">
-              <Music className="h-4 w-4 inline mr-1" />
-              {release.artistName} - {release.releaseName}
-            </p>
-          </div>
+    <AppLayout
+      title={`Analytics: ${release.artistName} — ${release.releaseName}`}
+      action={
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => router.push(`/release/${releaseId}`)}>
+            <ArrowLeft className="h-4 w-4 mr-1.5" />
+            Back to Release
+          </Button>
           {clicksWithoutLocation > 0 && (
             <Button
+              size="sm"
               onClick={handleUpdateLocations}
               disabled={updatingLocations}
               variant="outline"
             >
-              {updatingLocations ? "Updating..." : `Update ${clicksWithoutLocation} Missing Locations`}
+              {updatingLocations ? "Updating..." : `Update ${clicksWithoutLocation} Locations`}
             </Button>
           )}
         </div>
+      }
+    >
+      <div className="space-y-6">
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
@@ -782,35 +775,33 @@ export default function ReleaseAnalyticsPage() {
                     </p>
                     <div className="flex flex-wrap gap-2 mt-1">
                       {click.country && (
-                        <span className="text-xs bg-secondary px-2 py-1 rounded">
-                          🌍 {click.country}
-                          {click.city && `, ${click.city}`}
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                          {click.country}{click.city && `, ${click.city}`}
                         </span>
                       )}
                       {click.device && (
-                        <span className="text-xs bg-secondary px-2 py-1 rounded">
-                          📱 {click.device}
-                          {click.deviceType && ` (${click.deviceType})`}
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                          {click.device}{click.deviceType && ` (${click.deviceType})`}
                         </span>
                       )}
                       {click.browser && (
-                        <span className="text-xs bg-secondary px-2 py-1 rounded">
-                          🌐 {click.browser}
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                          {click.browser}
                         </span>
                       )}
                       {click.os && (
-                        <span className="text-xs bg-secondary px-2 py-1 rounded">
-                          💻 {click.os}
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                          {click.os}
                         </span>
                       )}
                       {click.socialSource && (
-                        <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
-                          📱 {click.socialSource}
+                        <span className="text-xs bg-gray-900 text-white px-2 py-1 rounded">
+                          {click.socialSource}
                         </span>
                       )}
                       {click.isBot && (
-                        <span className="text-xs bg-destructive text-destructive-foreground px-2 py-1 rounded">
-                          🤖 {click.botType || "Bot"}
+                        <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
+                          {click.botType || "Bot"}
                         </span>
                       )}
                     </div>
@@ -831,7 +822,7 @@ export default function ReleaseAnalyticsPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AppLayout>
   );
 }
 

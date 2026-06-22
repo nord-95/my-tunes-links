@@ -12,19 +12,17 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Link as LinkType } from "@/lib/types";
 import { formatDate, getPlatformIcon } from "@/lib/utils";
-import { 
-  ExternalLink, 
-  Copy, 
-  Edit, 
-  Trash2, 
-  BarChart3, 
+import AppLayout from "@/components/app-layout";
+import {
+  ExternalLink,
+  Copy,
+  Edit,
+  Trash2,
+  BarChart3,
   Link as LinkIcon,
-  Calendar,
-  Eye,
   Tag,
   Globe,
   Image as ImageIcon,
-  Settings
 } from "lucide-react";
 
 // Badge component - simple inline implementation
@@ -189,41 +187,29 @@ export default function LinkDetailsPage() {
   const linkUrl = getLinkUrl();
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="container mx-auto max-w-6xl space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold">{link.title}</h1>
-            {link.description && (
-              <p className="text-muted-foreground mt-2">{link.description}</p>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => router.push(`/analytics/${link.id}`)}
-            >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Analytics
-            </Button>
-            <Button
-              variant="default"
-              onClick={() => router.push(`/link/edit/${link.id}`)}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Link
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={deleteLink}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </Button>
-          </div>
+    <AppLayout
+      title={link.title}
+      action={
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => router.push(`/analytics/${link.id}`)}>
+            <BarChart3 className="h-4 w-4 mr-1.5" />
+            Analytics
+          </Button>
+          <Button size="sm" onClick={() => router.push(`/link/edit/${link.id}`)}>
+            <Edit className="h-4 w-4 mr-1.5" />
+            Edit
+          </Button>
+          <Button size="sm" variant="destructive" onClick={deleteLink}>
+            <Trash2 className="h-4 w-4 mr-1.5" />
+            Delete
+          </Button>
         </div>
-
+      }
+    >
+      <div className="space-y-6">
+        {link.description && (
+          <p className="text-sm text-gray-500 -mt-4">{link.description}</p>
+        )}
         <>
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -574,7 +560,7 @@ export default function LinkDetailsPage() {
             )}
         </>
       </div>
-    </div>
+    </AppLayout>
   );
 }
 

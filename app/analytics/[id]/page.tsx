@@ -11,6 +11,8 @@ import { Click, Link as LinkType } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import { useToast } from "@/components/ui/use-toast";
+import AppLayout from "@/components/app-layout";
+import { MapPin, Monitor, Globe, Laptop, ArrowLeft } from "lucide-react";
 
 export default function AnalyticsPage() {
   const params = useParams();
@@ -428,23 +430,28 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="container mx-auto space-y-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold">Analytics</h1>
-            <p className="text-muted-foreground mt-1">{link.title}</p>
-          </div>
+    <AppLayout
+      title={`Analytics: ${link.title}`}
+      action={
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => router.push(`/link/${linkId}`)}>
+            <ArrowLeft className="h-4 w-4 mr-1.5" />
+            Back to Link
+          </Button>
           {clicksWithoutLocation > 0 && (
             <Button
+              size="sm"
               onClick={handleUpdateLocations}
               disabled={updatingLocations}
               variant="outline"
             >
-              {updatingLocations ? "Updating..." : `Update ${clicksWithoutLocation} Missing Locations`}
+              {updatingLocations ? "Updating..." : `Update ${clicksWithoutLocation} Locations`}
             </Button>
           )}
         </div>
+      }
+    >
+      <div className="space-y-6">
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
@@ -707,35 +714,33 @@ export default function AnalyticsPage() {
                     </p>
                     <div className="flex flex-wrap gap-2 mt-1">
                       {click.country && (
-                        <span className="text-xs bg-secondary px-2 py-1 rounded">
-                          🌍 {click.country}
-                          {click.city && `, ${click.city}`}
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                          {click.country}{click.city && `, ${click.city}`}
                         </span>
                       )}
                       {click.device && (
-                        <span className="text-xs bg-secondary px-2 py-1 rounded">
-                          📱 {click.device}
-                          {click.deviceType && ` (${click.deviceType})`}
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                          {click.device}{click.deviceType && ` (${click.deviceType})`}
                         </span>
                       )}
                       {click.browser && (
-                        <span className="text-xs bg-secondary px-2 py-1 rounded">
-                          🌐 {click.browser}
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                          {click.browser}
                         </span>
                       )}
                       {click.os && (
-                        <span className="text-xs bg-secondary px-2 py-1 rounded">
-                          💻 {click.os}
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                          {click.os}
                         </span>
                       )}
                       {click.socialSource && (
-                        <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
-                          📱 {click.socialSource}
+                        <span className="text-xs bg-gray-900 text-white px-2 py-1 rounded">
+                          {click.socialSource}
                         </span>
                       )}
                       {click.utmSource && (
                         <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
-                          🏷️ UTM: {click.utmSource}
+                          UTM: {click.utmSource}
                           {click.utmMedium && ` (${click.utmMedium})`}
                           {click.utmCampaign && ` - ${click.utmCampaign}`}
                           {click.utmContent && ` [${click.utmContent}]`}
@@ -744,12 +749,12 @@ export default function AnalyticsPage() {
                       )}
                       {click.fbclid && !click.utmSource && (
                         <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded">
-                          📘 Facebook Click ID
+                          Facebook Click ID
                         </span>
                       )}
                       {click.isBot && (
-                        <span className="text-xs bg-destructive text-destructive-foreground px-2 py-1 rounded">
-                          🤖 {click.botType || "Bot"}
+                        <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
+                          {click.botType || "Bot"}
                         </span>
                       )}
                     </div>
@@ -770,7 +775,7 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AppLayout>
   );
 }
 

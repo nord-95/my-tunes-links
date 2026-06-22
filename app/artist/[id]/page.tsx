@@ -10,14 +10,14 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Artist } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
-import { 
-  ExternalLink, 
-  Edit, 
-  Trash2, 
+import AppLayout from "@/components/app-layout";
+import {
+  ExternalLink,
+  Edit,
+  Trash2,
   User,
   Globe,
   Mail,
-  ArrowLeft
 } from "lucide-react";
 
 export default function ArtistDetailsPage() {
@@ -198,54 +198,37 @@ export default function ArtistDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="container mx-auto max-w-6xl space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            onClick={() => router.push("/artists")}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Artists
+    <AppLayout
+      title={artist.name}
+      action={
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={() => router.push(`/artist/edit/${artist.id}`)}>
+            <Edit className="h-4 w-4 mr-1.5" />
+            Edit
+          </Button>
+          <Button size="sm" variant="destructive" onClick={deleteArtist}>
+            <Trash2 className="h-4 w-4 mr-1.5" />
+            Delete
           </Button>
         </div>
-
-        <div className="flex justify-between items-start">
-          <div className="flex items-center gap-6">
-            {artist.profileImageUrl ? (
-              <img
-                src={artist.profileImageUrl}
-                alt={artist.name}
-                className="w-32 h-32 rounded-full object-cover border"
-              />
-            ) : (
-              <div className="w-32 h-32 rounded-full bg-muted flex items-center justify-center border">
-                <User className="h-16 w-16 text-muted-foreground" />
-              </div>
-            )}
-            <div>
-              <h1 className="text-3xl font-bold">{artist.name}</h1>
-              {artist.bio && (
-                <p className="text-muted-foreground mt-2 max-w-2xl">{artist.bio}</p>
-              )}
+      }
+    >
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          {artist.profileImageUrl ? (
+            <img
+              src={artist.profileImageUrl}
+              alt={artist.name}
+              className="w-16 h-16 rounded-full object-cover border border-gray-200"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200">
+              <User className="h-8 w-8 text-gray-300" />
             </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="default"
-              onClick={() => router.push(`/artist/edit/${artist.id}`)}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Artist
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={deleteArtist}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </Button>
-          </div>
+          )}
+          {artist.bio && (
+            <p className="text-sm text-gray-500 max-w-2xl">{artist.bio}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -339,7 +322,7 @@ export default function ArtistDetailsPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
 
