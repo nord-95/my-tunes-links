@@ -44,166 +44,147 @@ export function parseUserAgent(userAgent: string): {
   browser: string;
   os: string;
   isBot: boolean;
-  botType?: string; // Type of bot if detected
+  botType?: string;
 } {
-  const ua = userAgent.toLowerCase();
-  
-  // Enhanced bot detection - check for various bot types
-  let isBot = false;
-  let botType: string | undefined = undefined;
-  
-  // Search engine crawlers
-  const searchEngineBots = [
-    { pattern: /googlebot|google-inspectiontool|mediapartners-google/i, name: "Google Bot" },
-    { pattern: /bingbot|msnbot|adidxbot/i, name: "Bing Bot" },
-    { pattern: /slurp|yahoo/i, name: "Yahoo Bot" },
-    { pattern: /duckduckbot/i, name: "DuckDuckGo Bot" },
-    { pattern: /baiduspider/i, name: "Baidu Bot" },
-    { pattern: /yandexbot|yandex/i, name: "Yandex Bot" },
-    { pattern: /sogou/i, name: "Sogou Bot" },
-    { pattern: /exabot/i, name: "Exalead Bot" },
-    { pattern: /facebot|facebookexternalhit/i, name: "Facebook Crawler" },
-    { pattern: /ia_archiver|archive\.org_bot/i, name: "Archive.org Bot" },
-  ];
-  
-  // Social media link preview services
-  const linkPreviewServices = [
-    { pattern: /facebookexternalhit|Facebot|facebook/i, name: "Facebook Link Preview" },
-    { pattern: /twitterbot|twitter/i, name: "Twitter Link Preview" },
-    { pattern: /linkedinbot|linkedin/i, name: "LinkedIn Link Preview" },
-    { pattern: /slackbot|slack-linkpreview/i, name: "Slack Link Preview" },
-    { pattern: /discordbot|discord/i, name: "Discord Link Preview" },
-    { pattern: /whatsapp|whatsappbot/i, name: "WhatsApp Link Preview" },
-    { pattern: /telegrambot|telegram/i, name: "Telegram Link Preview" },
-    { pattern: /skypebot|skype/i, name: "Skype Link Preview" },
-    { pattern: /redditbot|reddit/i, name: "Reddit Bot" },
-    { pattern: /pinterest|pinterestbot/i, name: "Pinterest Bot" },
-    { pattern: /applebot|apple/i, name: "Apple Bot" },
-    { pattern: /embedly|embedly/i, name: "Embedly" },
-    { pattern: /quora link preview/i, name: "Quora Link Preview" },
-    { pattern: /slackbot-linkpreview/i, name: "Slack Link Preview" },
-  ];
-  
-  // Email clients (often fetch links for preview)
-  const emailClients = [
-    { pattern: /microsoft office|outlook|ms-office/i, name: "Microsoft Outlook" },
-    { pattern: /thunderbird/i, name: "Mozilla Thunderbird" },
-    { pattern: /apple mail|mail\.app/i, name: "Apple Mail" },
-    { pattern: /gmail|google.*mail/i, name: "Gmail" },
-    { pattern: /yahoo.*mail|ymail/i, name: "Yahoo Mail" },
-    { pattern: /aol.*mail/i, name: "AOL Mail" },
-    { pattern: /protonmail/i, name: "ProtonMail" },
-  ];
-  
-  // Monitoring and uptime services
-  const monitoringServices = [
-    { pattern: /pingdom|uptimerobot|monitor/i, name: "Uptime Monitor" },
-    { pattern: /newrelic|datadog/i, name: "Monitoring Service" },
-    { pattern: /site24x7|statuscake/i, name: "Status Monitor" },
-    { pattern: /uptime|ping|healthcheck/i, name: "Health Check" },
-  ];
-  
-  // Security scanners
-  const securityScanners = [
-    { pattern: /nmap|masscan|zmap/i, name: "Security Scanner" },
-    { pattern: /nikto|sqlmap|w3af/i, name: "Security Scanner" },
-    { pattern: /nessus|openvas/i, name: "Vulnerability Scanner" },
-    { pattern: /acunetix|burpsuite/i, name: "Security Scanner" },
-  ];
-  
-  // Generic bot patterns
-  const genericBots = [
-    { pattern: /bot|crawler|spider|crawling|scraper/i, name: "Generic Bot" },
-    { pattern: /curl|wget|python-requests|go-http-client|java|okhttp/i, name: "HTTP Client" },
-    { pattern: /postman|insomnia|httpie/i, name: "API Client" },
-    { pattern: /headless|phantom|selenium|puppeteer|playwright/i, name: "Headless Browser" },
-  ];
-  
-  // Check in order of specificity (most specific first)
-  const allBotTypes = [
-    ...searchEngineBots,
-    ...linkPreviewServices,
-    ...emailClients,
-    ...monitoringServices,
-    ...securityScanners,
-    ...genericBots,
-  ];
-  
-  for (const bot of allBotTypes) {
-    if (bot.pattern.test(userAgent)) {
-      isBot = true;
-      botType = bot.name;
-      break; // Use first match (most specific)
-    }
-  }
-  
-  // Additional checks for empty or suspicious user agents
   if (!userAgent || userAgent.trim().length === 0) {
-    isBot = true;
-    botType = "Empty User Agent";
+    return { platform: "Unknown", device: "desktop", deviceType: "Unknown", browser: "Unknown", os: "Unknown", isBot: true, botType: "Empty User Agent" };
   }
-  
-  // Check for very short user agents (often bots)
-  if (userAgent.length < 10) {
-    isBot = true;
-    botType = botType || "Suspicious User Agent";
+  if (userAgent.trim().length < 20) {
+    return { platform: "Unknown", device: "desktop", deviceType: "Unknown", browser: "Unknown", os: "Unknown", isBot: true, botType: "Suspicious User Agent" };
   }
 
-  // Detect device type
+  // Only patterns that are EXCLUSIVE to bots — never appear in real browser UAs.
+  // Key rule: use exact bot token names, NOT brand names that also appear in in-app browsers.
+  //   WRONG: /facebook/i  — also matches "FBAN/FBIOS" in Facebook in-app browser (real users)
+  //   WRONG: /apple/i     — also matches "AppleWebKit" in every single Safari UA
+  //   CORRECT: /facebookexternalhit|facebot/i  — only Facebook's link preview crawler
+  //   CORRECT: /applebot/i — only Apple's search crawler
+  const botPatterns: Array<{ pattern: RegExp; name: string }> = [
+    // Search engine crawlers
+    { pattern: /googlebot|google-inspectiontool|mediapartners-google/i, name: "Google Bot" },
+    { pattern: /bingbot|msnbot|adidxbot/i, name: "Bing Bot" },
+    { pattern: /slurp/i, name: "Yahoo Bot" },             // NOT /yahoo/i — Yahoo is a real site
+    { pattern: /duckduckbot/i, name: "DuckDuckGo Bot" },
+    { pattern: /baiduspider/i, name: "Baidu Bot" },
+    { pattern: /yandexbot/i, name: "Yandex Bot" },        // NOT /yandex/i — Yandex Browser is real
+    { pattern: /sogou/i, name: "Sogou Bot" },
+    { pattern: /exabot/i, name: "Exalead Bot" },
+    { pattern: /applebot/i, name: "Apple Bot" },          // NOT /apple/i — AppleWebKit is in ALL Safari UAs!
+    { pattern: /ia_archiver|archive\.org_bot/i, name: "Archive.org Bot" },
+    // SEO crawlers
+    { pattern: /ahrefsbot|semrushbot|mj12bot|dotbot|rogerbot|screaming frog/i, name: "SEO Crawler" },
+    // Social media preview crawlers — ONLY the exact bot-exclusive string, not the brand name
+    { pattern: /facebookexternalhit|facebot/i, name: "Facebook Crawler" }, // NOT /facebook/i
+    { pattern: /twitterbot/i, name: "Twitter Bot" },                        // NOT /twitter/i
+    { pattern: /linkedinbot/i, name: "LinkedIn Bot" },                      // NOT /linkedin/i
+    { pattern: /discordbot/i, name: "Discord Bot" },                        // NOT /discord/i
+    { pattern: /slackbot|slack-linkpreview/i, name: "Slack Bot" },
+    { pattern: /telegrambot/i, name: "Telegram Bot" },                      // NOT /telegram/i
+    // WhatsApp link preview bot has UA like "WhatsApp/2.x A" — starts with WhatsApp/, no Mozilla
+    // Real users in WhatsApp IAB have "Mozilla/5.0 ... WhatsApp/23.x" — starts with Mozilla
+    { pattern: /^whatsapp\//i, name: "WhatsApp Crawler" },
+    { pattern: /redditbot/i, name: "Reddit Bot" },                          // NOT /reddit/i
+    { pattern: /pinterest\/0\./i, name: "Pinterest Bot" },                  // NOT /pinterest/i
+    { pattern: /embedly/i, name: "Embedly" },
+    { pattern: /quora link preview/i, name: "Quora Bot" },
+    // Email preview fetchers (these fetch URLs automatically, not on human click)
+    { pattern: /microsoft office|ms-office/i, name: "Microsoft Office" },
+    { pattern: /thunderbird/i, name: "Thunderbird" },
+    { pattern: /apple mail/i, name: "Apple Mail" },
+    // Uptime / monitoring (specific service names, not generic words)
+    { pattern: /pingdom|uptimerobot|site24x7|statuscake/i, name: "Uptime Monitor" },
+    { pattern: /newrelic|datadog/i, name: "Monitoring" },
+    // Security scanners
+    { pattern: /nmap|nikto|sqlmap|nessus|openvas|acunetix/i, name: "Security Scanner" },
+    // HTTP tools / programmatic clients
+    { pattern: /^curl\//i, name: "cURL" },
+    { pattern: /^wget\//i, name: "Wget" },
+    { pattern: /python-requests|python-urllib/i, name: "Python HTTP" },
+    { pattern: /^go-http-client/i, name: "Go HTTP" },
+    { pattern: /okhttp/i, name: "OkHttp" },
+    { pattern: /^java\//i, name: "Java HTTP" },
+    { pattern: /postman/i, name: "Postman" },
+    { pattern: /insomnia/i, name: "Insomnia" },
+    // Headless / automation browsers
+    { pattern: /headlesschrome/i, name: "Headless Chrome" },
+    { pattern: /phantomjs/i, name: "PhantomJS" },
+    { pattern: /selenium/i, name: "Selenium" },
+    { pattern: /puppeteer/i, name: "Puppeteer" },
+    { pattern: /playwright/i, name: "Playwright" },
+    // Generic fallback — word-boundary safe: \bbot\b won't match "Googlebot" (no boundary before b)
+    // but WILL match standalone "bot" tokens like "SomeBot/1.0" where "/" follows
+    { pattern: /\bcrawler\b|\bspider\b|\bscraper\b/i, name: "Web Crawler" },
+    { pattern: /\bbot\b/i, name: "Bot" },
+  ];
+
+  let isBot = false;
+  let botType: string | undefined = undefined;
+
+  for (const { pattern, name } of botPatterns) {
+    if (pattern.test(userAgent)) {
+      isBot = true;
+      botType = name;
+      break;
+    }
+  }
+
+  const ua = userAgent.toLowerCase();
+
+  // Device detection
   let device = "desktop";
   let deviceType = "Unknown";
-  
-  if (/mobile|android|iphone|ipod|blackberry|opera|mini|windows\sce|palm|smartphone|iemobile/i.test(ua)) {
+  if (/mobile|android|iphone|ipod|blackberry|opera mini|windows ce|palm|smartphone|iemobile/i.test(ua)) {
     device = "mobile";
     if (/iphone/i.test(ua)) deviceType = "iPhone";
     else if (/ipod/i.test(ua)) deviceType = "iPod";
     else if (/android/i.test(ua)) {
       if (/samsung/i.test(ua)) deviceType = "Samsung";
-      else if (/google/i.test(ua)) deviceType = "Google Pixel";
+      else if (/pixel/i.test(ua)) deviceType = "Google Pixel";
       else if (/oneplus/i.test(ua)) deviceType = "OnePlus";
-      else if (/xiaomi/i.test(ua)) deviceType = "Xiaomi";
-      else deviceType = "Android Device";
+      else if (/xiaomi|redmi/i.test(ua)) deviceType = "Xiaomi";
+      else deviceType = "Android";
     }
     else if (/blackberry/i.test(ua)) deviceType = "BlackBerry";
   } else if (/ipad|tablet|playbook|silk/i.test(ua)) {
     device = "tablet";
     if (/ipad/i.test(ua)) deviceType = "iPad";
-    else if (/android/i.test(ua)) deviceType = "Android Tablet";
+    else deviceType = "Android Tablet";
   }
 
-  // Detect OS
+  // OS detection
   let os = "Unknown";
-  if (/windows/i.test(ua)) os = "Windows";
-  else if (/macintosh|mac os x/i.test(ua)) os = "macOS";
-  else if (/linux/i.test(ua)) os = "Linux";
+  if (/windows phone/i.test(ua)) os = "Windows Phone";
+  else if (/windows/i.test(ua)) os = "Windows";
   else if (/android/i.test(ua)) os = "Android";
   else if (/iphone|ipad|ipod/i.test(ua)) os = "iOS";
-  else if (/windows phone/i.test(ua)) os = "Windows Phone";
+  else if (/macintosh|mac os x/i.test(ua)) os = "macOS";
+  else if (/linux/i.test(ua)) os = "Linux";
 
-  // Detect browser
+  // Browser detection — check in-app browsers FIRST before generic Chrome/Safari
+  // In-app browsers show as Chrome/Safari but have additional identifiers
   let browser = "Unknown";
-  if (/edg/i.test(ua)) browser = "Edge";
-  else if (/chrome/i.test(ua) && !/edg/i.test(ua)) browser = "Chrome";
-  else if (/safari/i.test(ua) && !/chrome/i.test(ua)) browser = "Safari";
-  else if (/firefox/i.test(ua)) browser = "Firefox";
-  else if (/opera|opr/i.test(ua)) browser = "Opera";
+  if (/fban|fb_iab|fbios|fbav\//i.test(ua)) browser = "Facebook IAB";
+  else if (/instagram/i.test(ua)) browser = "Instagram IAB";
+  else if (/twitter for iphone|twitter for android|twitterandroid/i.test(ua)) browser = "Twitter IAB";
+  else if (/ whatsapp\//i.test(ua)) browser = "WhatsApp IAB";  // space before = Mozilla UA, not bot UA
+  else if (/\btelegram\//i.test(ua)) browser = "Telegram IAB";
+  else if (/snapchat/i.test(ua)) browser = "Snapchat IAB";
+  else if (/tiktok|musically/i.test(ua)) browser = "TikTok IAB";
+  else if (/linkedinapp/i.test(ua)) browser = "LinkedIn IAB";
+  else if (/discord\//i.test(ua)) browser = "Discord IAB";    // "Discord/" token, not "Discordbot"
+  else if (/edg\//i.test(ua)) browser = "Edge";
+  else if (/opr\/|opera/i.test(ua)) browser = "Opera";
+  else if (/firefox|fxios/i.test(ua)) browser = "Firefox";
+  else if (/chrome|crios/i.test(ua)) browser = "Chrome";
+  else if (/safari/i.test(ua)) browser = "Safari";
   else if (/msie|trident/i.test(ua)) browser = "IE";
 
-  // Detect platform (for mobile)
+  // Platform
   let platform = os;
   if (os === "iOS") platform = "iOS";
   else if (os === "Android") platform = "Android";
-  else if (os === "Windows" || os === "macOS" || os === "Linux") platform = os;
 
-  return {
-    platform,
-    device,
-    deviceType,
-    browser,
-    os,
-    isBot,
-    botType,
-  };
+  return { platform, device, deviceType, browser, os, isBot, botType };
 }
 
 export function detectSocialSource(referrer: string, urlParams?: URLSearchParams): string | undefined {
