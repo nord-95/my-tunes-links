@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
+import { after } from "next/server";
 import type { Metadata } from "next";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, limit, doc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, limit, doc, getDoc, updateDoc, addDoc } from "firebase/firestore";
 import { Release } from "@/lib/types";
 import ReleasePageClient from "@/components/release-page-client";
+import { lookupIP } from "@/lib/geoip";
 
 async function getRelease(slug: string): Promise<Release | null> {
   try {
@@ -54,111 +56,88 @@ async function getRelease(slug: string): Promise<Release | null> {
   }
 }
 
+function extractIP(headersList: Headers): string {
+  const forwarded = headersList.get("x-forwarded-for");
+  const vercelForwarded = headersList.get("x-vercel-forwarded-for");
+  const realIp = headersList.get("x-real-ip");
+  const cfConnectingIp = headersList.get("cf-connecting-ip");
+  if (forwarded) return forwarded.split(",")[0].trim();
+  if (vercelForwarded) return vercelForwarded.split(",")[0].trim();
+  return realIp || cfConnectingIp || "";
+}
+
+function extractUTM(url: string): Record<string, string> {
+  try {
+    const params = new URL(url).searchParams;
+    const utm: Record<string, string> = {};
+    for (const key of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid"]) {
+      const val = params.get(key);
+      if (val) utm[key] = val;
+    }
+    return utm;
+  } catch {
+    return {};
+  }
+}
+
 async function trackReleaseView(releaseId: string, headersList: Headers, currentUrl?: string) {
   try {
     const userAgent = headersList.get("user-agent") || "";
     const referer = headersList.get("referer") || "";
-    
-    // Get IP address
-    const forwarded = headersList.get("x-forwarded-for");
-    const vercelForwarded = headersList.get("x-vercel-forwarded-for");
-    const realIp = headersList.get("x-real-ip");
-    const cfConnectingIp = headersList.get("cf-connecting-ip");
-    
-    let ipAddress = "";
-    if (forwarded) {
-      const ips = forwarded.split(",").map(ip => ip.trim()).filter(ip => ip);
-      ipAddress = ips.length > 0 ? ips[0] : "";
-    } else if (vercelForwarded) {
-      const ips = vercelForwarded.split(",").map(ip => ip.trim()).filter(ip => ip);
-      ipAddress = ips.length > 0 ? ips[0] : "";
-    } else {
-      ipAddress = realIp || cfConnectingIp || "";
-    }
+    const ipAddress = extractIP(headersList);
 
-    // Parse URL parameters
-    let currentUrlParams: URLSearchParams | undefined;
-    let utmSource: string | undefined;
-    let utmMedium: string | undefined;
-    let utmCampaign: string | undefined;
-    let utmContent: string | undefined;
-    let utmTerm: string | undefined;
-    let fbclid: string | undefined;
-    
-    if (currentUrl) {
-      try {
-        const url = new URL(currentUrl);
-        currentUrlParams = url.searchParams;
-        utmSource = currentUrlParams.get("utm_source") || undefined;
-        utmMedium = currentUrlParams.get("utm_medium") || undefined;
-        utmCampaign = currentUrlParams.get("utm_campaign") || undefined;
-        utmContent = currentUrlParams.get("utm_content") || undefined;
-        utmTerm = currentUrlParams.get("utm_term") || undefined;
-        fbclid = currentUrlParams.get("fbclid") || undefined;
-      } catch (e) {
-        console.warn("Failed to parse current URL:", e);
-      }
-    }
+    const utm = currentUrl ? extractUTM(currentUrl) : {};
+    if (referer && !utm.utm_source) Object.assign(utm, extractUTM(referer));
 
-    // Parse user agent
     const { parseUserAgent, detectSocialSource } = await import("@/lib/utils");
     const deviceInfo = parseUserAgent(userAgent);
-    
-    // Detect social source
-    let socialSource: string | undefined;
-    if (referer) {
-      socialSource = detectSocialSource(referer, currentUrlParams);
-    }
-    if (!socialSource && utmSource) {
-      socialSource = detectSocialSource("", currentUrlParams);
-    }
-    if (!socialSource && fbclid) {
-      socialSource = "Facebook";
-    }
 
-    const { addDoc, collection } = await import("firebase/firestore");
-    
-    const clickDataRaw: Record<string, any> = {
+    let socialSource = detectSocialSource(referer, currentUrl ? new URL(currentUrl).searchParams : undefined);
+    if (!socialSource && utm.fbclid) socialSource = "Facebook";
+
+    const geoData = await lookupIP(ipAddress);
+
+    const clickData: Record<string, any> = {
       releaseId,
       timestamp: new Date(),
       clickType: "view",
       isBot: deviceInfo.isBot || false,
-      enrichmentStatus: "pending",
-      enrichmentAttempts: 0,
     };
 
-    if (userAgent) clickDataRaw.userAgent = userAgent;
-    if (referer) clickDataRaw.referrer = referer;
-    if (ipAddress) clickDataRaw.ipAddress = ipAddress;
-    if (deviceInfo.platform) clickDataRaw.platform_type = deviceInfo.platform;
-    if (deviceInfo.device) clickDataRaw.device = deviceInfo.device;
-    if (deviceInfo.deviceType) clickDataRaw.deviceType = deviceInfo.deviceType;
-    if (deviceInfo.browser) clickDataRaw.browser = deviceInfo.browser;
-    if (deviceInfo.os) clickDataRaw.os = deviceInfo.os;
-    if (deviceInfo.isBot) clickDataRaw.isBot = deviceInfo.isBot;
-    if (deviceInfo.botType) clickDataRaw.botType = deviceInfo.botType;
-    if (socialSource) clickDataRaw.socialSource = socialSource;
-    if (utmSource) clickDataRaw.utmSource = utmSource;
-    if (utmMedium) clickDataRaw.utmMedium = utmMedium;
-    if (utmCampaign) clickDataRaw.utmCampaign = utmCampaign;
-    if (utmContent) clickDataRaw.utmContent = utmContent;
-    if (utmTerm) clickDataRaw.utmTerm = utmTerm;
-    if (fbclid) clickDataRaw.fbclid = fbclid;
+    if (userAgent) clickData.userAgent = userAgent;
+    if (referer) clickData.referrer = referer;
+    if (ipAddress) clickData.ipAddress = ipAddress;
+    if (deviceInfo.platform) clickData.platform_type = deviceInfo.platform;
+    if (deviceInfo.device) clickData.device = deviceInfo.device;
+    if (deviceInfo.deviceType) clickData.deviceType = deviceInfo.deviceType;
+    if (deviceInfo.browser) clickData.browser = deviceInfo.browser;
+    if (deviceInfo.os) clickData.os = deviceInfo.os;
+    if (deviceInfo.botType) clickData.botType = deviceInfo.botType;
+    if (socialSource) clickData.socialSource = socialSource;
+    if (utm.utm_source) clickData.utmSource = utm.utm_source;
+    if (utm.utm_medium) clickData.utmMedium = utm.utm_medium;
+    if (utm.utm_campaign) clickData.utmCampaign = utm.utm_campaign;
+    if (utm.utm_content) clickData.utmContent = utm.utm_content;
+    if (utm.utm_term) clickData.utmTerm = utm.utm_term;
+    if (utm.fbclid) clickData.fbclid = utm.fbclid;
+    if (geoData.country) clickData.country = geoData.country;
+    if (geoData.city) clickData.city = geoData.city;
+    if (geoData.region) clickData.region = geoData.region;
+    if (geoData.countryCode) clickData.countryCode = geoData.countryCode;
+    if (geoData.timezone) clickData.timezone = geoData.timezone;
 
-    await addDoc(collection(db, "releaseClicks"), clickDataRaw);
+    await addDoc(collection(db, "releaseClicks"), clickData);
 
-    // Update release view count
     const releaseRef = doc(db, "releases", releaseId);
     const releaseDoc = await getDoc(releaseRef);
     if (releaseDoc.exists()) {
-      const currentViews = releaseDoc.data()?.views || 0;
       await updateDoc(releaseRef, {
-        views: currentViews + 1,
+        views: (releaseDoc.data()?.views || 0) + 1,
         updatedAt: new Date(),
       });
     }
   } catch (error: any) {
-    console.error("Error tracking release view:", error);
+    console.error("Error tracking release view:", error.message);
   }
 }
 
@@ -265,20 +244,7 @@ export default async function ReleasePage({
   
   const currentUrl = `${protocol}://${host}${path}${queryString}`;
   
-  // Track release view
-  const trackingPromise = trackReleaseView(release.id, headersList, currentUrl);
-  
-  Promise.race([
-    trackingPromise,
-    new Promise((resolve) => setTimeout(() => resolve("timeout"), 100)),
-  ]).then((result) => {
-    if (result === "timeout") {
-      trackingPromise.catch((err) => console.error("Background tracking failed:", err));
-    }
-  }).catch((error) => {
-    console.error("Error in trackReleaseView:", error);
-  });
-
+  after(() => trackReleaseView(release.id, headersList, currentUrl));
   return <ReleasePageClient release={release} />;
 }
 

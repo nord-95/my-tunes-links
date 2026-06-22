@@ -202,10 +202,16 @@ export function parseUserAgent(userAgent: string): {
     browser,
     os,
     isBot,
+    botType,
   };
 }
 
 export function detectSocialSource(referrer: string, urlParams?: URLSearchParams): string | undefined {
+  // No referrer and no UTM = direct traffic
+  if (!referrer && (!urlParams || !urlParams.get("utm_source"))) {
+    return "Direct";
+  }
+
   // First check UTM source parameter (most accurate)
   if (urlParams) {
     const utmSource = urlParams.get("utm_source");

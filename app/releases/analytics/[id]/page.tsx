@@ -305,10 +305,11 @@ export default function ReleaseAnalyticsPage() {
   const buttonClicks = clicks.filter(c => c.clickType === "button_click").length;
   const uniqueCountries = new Set(clicks.filter(c => c.country).map(c => c.country)).size;
   const uniqueCities = new Set(clicks.filter(c => c.city).map(c => `${c.city}, ${c.country || 'Unknown'}`)).size;
-  const socialClicks = clicks.filter(c => c.socialSource).length;
+  const socialClicks = clicks.filter(c => c.socialSource && c.socialSource !== "Direct").length;
   const utmClicks = clicks.filter(c => c.utmSource).length;
   const botClicks = clicks.filter(c => c.isBot).length;
   const humanClicks = clicks.length - botClicks;
+  const uniqueVisitors = new Set(clicks.filter(c => c.ipAddress && !c.isBot && c.clickType === "view").map(c => c.ipAddress)).size;
   const clicksWithoutLocation = clicks.filter(c => c.ipAddress && !c.country && !c.countryCode).length;
 
   const handleUpdateLocations = async () => {
@@ -466,47 +467,41 @@ export default function ReleaseAnalyticsPage() {
     >
       <div className="space-y-6">
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader>
-              <CardTitle>Total Views</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-500">Page Views</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{views}</p>
-              <p className="text-sm text-muted-foreground">
-                Page views
-              </p>
+              <p className="text-sm text-gray-400">{botClicks} bots filtered</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Platform Clicks</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-500">Unique Visitors</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">{uniqueVisitors}</p>
+              <p className="text-sm text-gray-400">distinct IPs</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-gray-500">Platform Clicks</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{platformClicks}</p>
-              <p className="text-sm text-muted-foreground">
-                Music platform clicks
-              </p>
+              <p className="text-sm text-gray-400">to streaming services</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Total Interactions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{clicks.length}</p>
-              <p className="text-sm text-muted-foreground">
-                {humanClicks} human, {botClicks} bots
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Countries</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-500">Countries</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{uniqueCountries}</p>
-              <p className="text-sm text-muted-foreground">{uniqueCities} cities</p>
+              <p className="text-sm text-gray-400">{uniqueCities} cities</p>
             </CardContent>
           </Card>
         </div>

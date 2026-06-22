@@ -284,10 +284,11 @@ export default function AnalyticsPage() {
   const botData = getBotData();
   const uniqueCountries = new Set(clicks.filter(c => c.country).map(c => c.country)).size;
   const uniqueCities = new Set(clicks.filter(c => c.city).map(c => `${c.city}, ${c.country || 'Unknown'}`)).size;
-  const socialClicks = clicks.filter(c => c.socialSource).length;
+  const socialClicks = clicks.filter(c => c.socialSource && c.socialSource !== "Direct").length;
   const utmClicks = clicks.filter(c => c.utmSource).length;
   const botClicks = clicks.filter(c => c.isBot).length;
   const humanClicks = clicks.length - botClicks;
+  const uniqueVisitors = new Set(clicks.filter(c => c.ipAddress && !c.isBot).map(c => c.ipAddress)).size;
   
   // Count clicks with IP but no location
   const clicksWithoutLocation = clicks.filter(c => c.ipAddress && !c.country && !c.countryCode).length;
@@ -453,50 +454,42 @@ export default function AnalyticsPage() {
     >
       <div className="space-y-6">
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader>
-              <CardTitle>Total Clicks</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-500">Total Clicks</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{clicks.length}</p>
-              <p className="text-sm text-muted-foreground">
-                {humanClicks} human, {botClicks} bots
-              </p>
+              <p className="text-3xl font-bold">{humanClicks}</p>
+              <p className="text-sm text-gray-400">{botClicks} bots filtered</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Countries</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-500">Unique Visitors</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">{uniqueVisitors}</p>
+              <p className="text-sm text-gray-400">distinct IPs</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-gray-500">Countries</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{uniqueCountries}</p>
-              <p className="text-sm text-muted-foreground">{uniqueCities} cities</p>
+              <p className="text-sm text-gray-400">{uniqueCities} cities</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Social Sources</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-500">Social Clicks</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{socialClicks}</p>
-              <p className="text-sm text-muted-foreground">
-                {utmClicks > 0 && `${utmClicks} with UTM`}
-                {utmClicks === 0 && "From social media"}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Link Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-lg">
-                {link.isActive ? (
-                  <span className="text-green-600">Active</span>
-                ) : (
-                  <span className="text-red-600">Inactive</span>
-                )}
+              <p className="text-sm text-gray-400">
+                {utmClicks > 0 ? `${utmClicks} with UTM` : "from social media"}
               </p>
             </CardContent>
           </Card>

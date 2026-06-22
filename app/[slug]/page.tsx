@@ -1,9 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { after } from "next/server";
 import type { Metadata } from "next";
 import LinkRedirect from "@/components/link-redirect";
 import ReleasePageClient from "@/components/release-page-client";
 import { Link, Release } from "@/lib/types";
+import { lookupIP } from "@/lib/geoip";
 
 async function getLink(slug: string): Promise<Link | null> {
   try {
@@ -86,246 +88,111 @@ async function getLink(slug: string): Promise<Link | null> {
   }
 }
 
+function extractIP(headersList: Headers): string {
+  const forwarded = headersList.get("x-forwarded-for");
+  const vercelForwarded = headersList.get("x-vercel-forwarded-for");
+  const realIp = headersList.get("x-real-ip");
+  const cfConnectingIp = headersList.get("cf-connecting-ip");
+
+  if (forwarded) {
+    const ips = forwarded.split(",").map((ip) => ip.trim()).filter(Boolean);
+    return ips[0] || "";
+  }
+  if (vercelForwarded) {
+    const ips = vercelForwarded.split(",").map((ip) => ip.trim()).filter(Boolean);
+    return ips[0] || "";
+  }
+  return realIp || cfConnectingIp || "";
+}
+
+function extractUTM(url: string): Record<string, string> {
+  try {
+    const params = new URL(url).searchParams;
+    const utm: Record<string, string> = {};
+    for (const key of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid"]) {
+      const val = params.get(key);
+      if (val) utm[key] = val;
+    }
+    return utm;
+  } catch {
+    return {};
+  }
+}
+
 async function trackClick(linkId: string, headersList: Headers, currentUrl?: string, link?: Link | null) {
   try {
     const userAgent = headersList.get("user-agent") || "";
     const referer = headersList.get("referer") || "";
-    
-    // Get IP address - check multiple headers for better accuracy (Vercel, Cloudflare, etc.)
-    // Priority: x-forwarded-for (first IP is client) > x-real-ip > cf-connecting-ip > x-client-ip > x-vercel-forwarded-for
-    const forwarded = headersList.get("x-forwarded-for");
-    const vercelForwarded = headersList.get("x-vercel-forwarded-for");
-    const realIp = headersList.get("x-real-ip");
-    const cfConnectingIp = headersList.get("cf-connecting-ip");
-    const clientIp = headersList.get("x-client-ip");
-    const trueClientIp = headersList.get("true-client-ip");
-    
-    let ipAddress = "";
-    // Try to get the real client IP, not proxy IPs
-    if (forwarded) {
-      // x-forwarded-for can contain multiple IPs: "client, proxy1, proxy2"
-      // The LAST IP is usually the original client (after proxies)
-      // But sometimes the FIRST is the client. Try both.
-      const ips = forwarded.split(",").map(ip => ip.trim()).filter(ip => ip);
-      if (ips.length > 0) {
-        // For most cases, first IP is client, but if it looks like a proxy/CDN, try last
-        const firstIP = ips[0];
-        const lastIP = ips[ips.length - 1];
-        // Use first IP by default, but we'll let geolocation services handle proxy detection
-        ipAddress = firstIP;
-      }
-    } else if (vercelForwarded) {
-      // Vercel specific header
-      const ips = vercelForwarded.split(",").map(ip => ip.trim()).filter(ip => ip);
-      ipAddress = ips.length > 0 ? ips[0] : "";
-    } else {
-      // Fallback to other headers
-      ipAddress = realIp || 
-                  cfConnectingIp || // Cloudflare
-                  clientIp || 
-                  trueClientIp || // Some proxies
-                  "";
-    }
-    
-    // Log all IP-related headers for debugging
-    let refererHostname = "none";
-    if (referer) {
-      try {
-        refererHostname = new URL(referer).hostname;
-      } catch {
-        refererHostname = referer.substring(0, 50);
-      }
-    }
-    
-    console.log("IP Detection Debug:", {
-      detectedIP: ipAddress || "none",
-      referer: refererHostname,
-      headers: {
-        "x-forwarded-for": forwarded || "none",
-        "x-vercel-forwarded-for": vercelForwarded || "none",
-        "x-real-ip": realIp || "none",
-        "cf-connecting-ip": cfConnectingIp || "none",
-        "x-client-ip": clientIp || "none",
-        "true-client-ip": trueClientIp || "none",
-      }
-    });
+    const ipAddress = extractIP(headersList);
 
-    // Parse URL parameters from CURRENT URL (the short link URL) - this is where UTM and fbclid are
-    let currentUrlParams: URLSearchParams | undefined;
-    let utmSource: string | undefined;
-    let utmMedium: string | undefined;
-    let utmCampaign: string | undefined;
-    let utmContent: string | undefined;
-    let utmTerm: string | undefined;
-    let fbclid: string | undefined;
-    
-    // Parse current URL for UTM and tracking parameters
-    if (currentUrl) {
-      try {
-        const url = new URL(currentUrl);
-        currentUrlParams = url.searchParams;
-        utmSource = currentUrlParams.get("utm_source") || undefined;
-        utmMedium = currentUrlParams.get("utm_medium") || undefined;
-        utmCampaign = currentUrlParams.get("utm_campaign") || undefined;
-        utmContent = currentUrlParams.get("utm_content") || undefined;
-        utmTerm = currentUrlParams.get("utm_term") || undefined;
-        fbclid = currentUrlParams.get("fbclid") || undefined;
-      } catch (e) {
-        console.warn("Failed to parse current URL:", e);
-      }
+    // Parse UTM / fbclid from current URL, fall back to referer, then internal UTM
+    const utm = currentUrl ? extractUTM(currentUrl) : {};
+    if (referer && !utm.utm_source) {
+      const refererUtm = extractUTM(referer);
+      Object.assign(utm, refererUtm);
     }
-
-    // Also check referrer for UTM (in case they're in the referrer)
-    if (referer && !utmSource) {
-      try {
-        const refererUrl = new URL(referer);
-        const refererParams = refererUrl.searchParams;
-        if (!utmSource) utmSource = refererParams.get("utm_source") || undefined;
-        if (!utmMedium) utmMedium = refererParams.get("utm_medium") || undefined;
-        if (!utmCampaign) utmCampaign = refererParams.get("utm_campaign") || undefined;
-        if (!utmContent) utmContent = refererParams.get("utm_content") || undefined;
-        if (!utmTerm) utmTerm = refererParams.get("utm_term") || undefined;
-      } catch (e) {
-        // Invalid URL, skip UTM parsing
-      }
-    }
-
-    // Use internal UTM from link if URL UTM is not present
     if (link) {
-      if (!utmSource && link.internalUtmSource) {
-        utmSource = link.internalUtmSource;
-        console.log("Using internal UTM source:", utmSource);
-      }
-      if (!utmMedium && link.internalUtmMedium) {
-        utmMedium = link.internalUtmMedium;
-      }
-      if (!utmCampaign && link.internalUtmCampaign) {
-        utmCampaign = link.internalUtmCampaign;
-      }
-      if (!utmContent && link.internalUtmContent) {
-        utmContent = link.internalUtmContent;
-      }
-      if (!utmTerm && link.internalUtmTerm) {
-        utmTerm = link.internalUtmTerm;
-      }
+      if (!utm.utm_source && link.internalUtmSource) utm.utm_source = link.internalUtmSource;
+      if (!utm.utm_medium && link.internalUtmMedium) utm.utm_medium = link.internalUtmMedium;
+      if (!utm.utm_campaign && link.internalUtmCampaign) utm.utm_campaign = link.internalUtmCampaign;
+      if (!utm.utm_content && link.internalUtmContent) utm.utm_content = link.internalUtmContent;
+      if (!utm.utm_term && link.internalUtmTerm) utm.utm_term = link.internalUtmTerm;
     }
 
-    // Parse user agent for device/browser info
     const { parseUserAgent, detectSocialSource } = await import("@/lib/utils");
     const deviceInfo = parseUserAgent(userAgent);
-    
-    // Additional bot detection from referrer (some services don't have obvious user agents)
-    if (!deviceInfo.isBot && referer) {
-      const refererLower = referer.toLowerCase();
-      // Check for link preview services in referrer
-      if (refererLower.includes('facebook.com') && refererLower.includes('l.php')) {
-        deviceInfo.isBot = true;
-        deviceInfo.botType = "Facebook Link Preview";
-      } else if (refererLower.includes('t.co') || refererLower.includes('twitter.com')) {
-        // Twitter link previews often come from t.co
-        // But we can't be 100% sure, so we'll rely on user agent mostly
-      }
-    }
-    
-    // Detect social source - check referrer first (to distinguish Facebook vs Instagram when both have fbclid)
-    // Priority: referrer > UTM > fbclid (as fallback)
-    let socialSource: string | undefined;
-    
-    // First, check referrer to distinguish between Facebook and Instagram (both use fbclid)
-    if (referer) {
-      socialSource = detectSocialSource(referer, currentUrlParams);
-      if (socialSource) {
-        console.log(`✅ Detected social source via referrer: ${socialSource}`);
-      }
-    }
-    
-    // If no referrer match, check UTM parameters
-    if (!socialSource && utmSource) {
-      socialSource = detectSocialSource("", currentUrlParams);
-      if (socialSource) {
-        console.log(`✅ Detected social source via UTM: ${socialSource} (utm_source=${utmSource})`);
-      }
-    }
-    
-    // If still no match and fbclid is present, assume Facebook (but only as last resort)
-    if (!socialSource && fbclid) {
-      socialSource = "Facebook";
-      console.log("✅ Detected Facebook via fbclid (no referrer/UTM match)");
-    }
-    
-    console.log("Tracking data:", {
-      fbclid: !!fbclid,
-      utmSource,
-      utmMedium,
-      utmCampaign,
-      utmContent,
-      utmTerm,
-      socialSource,
-      referer: referer ? (() => {
-        try {
-          return new URL(referer).hostname;
-        } catch {
-          return referer.substring(0, 50);
-        }
-      })() : "none",
-    });
-    
-    // Do not perform geolocation during redirect; defer enrichment
+
+    // Social source: referrer takes priority, UTM second, fbclid as last resort
+    let socialSource = detectSocialSource(referer, currentUrl ? new URL(currentUrl).searchParams : undefined);
+    if (!socialSource && utm.fbclid) socialSource = "Facebook";
+
+    // Geolocation via MaxMind — local, <1ms, no external dependency
+    const geoData = await lookupIP(ipAddress);
 
     const { addDoc, collection, doc, updateDoc, getDoc } = await import("firebase/firestore");
     const { db } = await import("@/lib/firebase");
 
-    // Create click document - Firestore doesn't allow undefined values, so we filter them out
-    const clickDataRaw: Record<string, any> = {
+    const clickData: Record<string, any> = {
       linkId,
       timestamp: new Date(),
       isBot: deviceInfo.isBot || false,
-      enrichmentStatus: "pending",
-      enrichmentAttempts: 0,
     };
 
-    // Only add fields that have actual values (not undefined)
-    if (userAgent) clickDataRaw.userAgent = userAgent;
-    if (referer) clickDataRaw.referrer = referer;
-    if (ipAddress) clickDataRaw.ipAddress = ipAddress;
-    if (deviceInfo.platform) clickDataRaw.platform = deviceInfo.platform;
-    if (deviceInfo.device) clickDataRaw.device = deviceInfo.device;
-    if (deviceInfo.deviceType) clickDataRaw.deviceType = deviceInfo.deviceType;
-    if (deviceInfo.browser) clickDataRaw.browser = deviceInfo.browser;
-    if (deviceInfo.os) clickDataRaw.os = deviceInfo.os;
-    if (deviceInfo.isBot) clickDataRaw.isBot = deviceInfo.isBot;
-    if (deviceInfo.botType) clickDataRaw.botType = deviceInfo.botType;
-    if (socialSource) clickDataRaw.socialSource = socialSource;
-    if (utmSource) clickDataRaw.utmSource = utmSource;
-    if (utmMedium) clickDataRaw.utmMedium = utmMedium;
-    if (utmCampaign) clickDataRaw.utmCampaign = utmCampaign;
-    if (utmContent) clickDataRaw.utmContent = utmContent;
-    if (utmTerm) clickDataRaw.utmTerm = utmTerm;
-    if (fbclid) clickDataRaw.fbclid = fbclid; // Store fbclid for Facebook attribution
+    if (userAgent) clickData.userAgent = userAgent;
+    if (referer) clickData.referrer = referer;
+    if (ipAddress) clickData.ipAddress = ipAddress;
+    if (deviceInfo.platform) clickData.platform = deviceInfo.platform;
+    if (deviceInfo.device) clickData.device = deviceInfo.device;
+    if (deviceInfo.deviceType) clickData.deviceType = deviceInfo.deviceType;
+    if (deviceInfo.browser) clickData.browser = deviceInfo.browser;
+    if (deviceInfo.os) clickData.os = deviceInfo.os;
+    if (deviceInfo.botType) clickData.botType = deviceInfo.botType;
+    if (socialSource) clickData.socialSource = socialSource;
+    if (utm.utm_source) clickData.utmSource = utm.utm_source;
+    if (utm.utm_medium) clickData.utmMedium = utm.utm_medium;
+    if (utm.utm_campaign) clickData.utmCampaign = utm.utm_campaign;
+    if (utm.utm_content) clickData.utmContent = utm.utm_content;
+    if (utm.utm_term) clickData.utmTerm = utm.utm_term;
+    if (utm.fbclid) clickData.fbclid = utm.fbclid;
+    if (geoData.country) clickData.country = geoData.country;
+    if (geoData.city) clickData.city = geoData.city;
+    if (geoData.region) clickData.region = geoData.region;
+    if (geoData.countryCode) clickData.countryCode = geoData.countryCode;
+    if (geoData.timezone) clickData.timezone = geoData.timezone;
 
-    console.log("Creating click with data:", { linkId, timestamp: clickDataRaw.timestamp, fieldCount: Object.keys(clickDataRaw).length });
-    const clickRef = await addDoc(collection(db, "clicks"), clickDataRaw);
-    console.log("Click created successfully with ID:", clickRef.id);
+    await addDoc(collection(db, "clicks"), clickData);
 
-    // Update link click count
+    // Increment link click counter
     const linkRef = doc(db, "links", linkId);
     const linkDoc = await getDoc(linkRef);
     if (linkDoc.exists()) {
-      const currentClicks = linkDoc.data()?.clicks || 0;
       await updateDoc(linkRef, {
-        clicks: currentClicks + 1,
+        clicks: (linkDoc.data()?.clicks || 0) + 1,
         updatedAt: new Date(),
       });
-      console.log("Link click count updated:", currentClicks + 1);
     }
   } catch (error: any) {
-    console.error("Error tracking click:", error);
-    console.error("Error details:", {
-      code: error.code,
-      message: error.message,
-      stack: error.stack,
-    });
-    // Don't throw - we don't want to block the redirect
+    console.error("Error tracking click:", error.message);
   }
 }
 
@@ -381,105 +248,65 @@ async function getRelease(slug: string): Promise<Release | null> {
 
 async function trackReleaseView(releaseId: string, headersList: Headers, currentUrl?: string) {
   try {
-    const { db } = await import("@/lib/firebase");
-    const { addDoc, collection, doc, getDoc, updateDoc } = await import("firebase/firestore");
-    
     const userAgent = headersList.get("user-agent") || "";
     const referer = headersList.get("referer") || "";
-    
-    const forwarded = headersList.get("x-forwarded-for");
-    const vercelForwarded = headersList.get("x-vercel-forwarded-for");
-    const realIp = headersList.get("x-real-ip");
-    const cfConnectingIp = headersList.get("cf-connecting-ip");
-    
-    let ipAddress = "";
-    if (forwarded) {
-      const ips = forwarded.split(",").map(ip => ip.trim()).filter(ip => ip);
-      ipAddress = ips.length > 0 ? ips[0] : "";
-    } else if (vercelForwarded) {
-      const ips = vercelForwarded.split(",").map(ip => ip.trim()).filter(ip => ip);
-      ipAddress = ips.length > 0 ? ips[0] : "";
-    } else {
-      ipAddress = realIp || cfConnectingIp || "";
-    }
+    const ipAddress = extractIP(headersList);
 
-    let currentUrlParams: URLSearchParams | undefined;
-    let utmSource: string | undefined;
-    let utmMedium: string | undefined;
-    let utmCampaign: string | undefined;
-    let utmContent: string | undefined;
-    let utmTerm: string | undefined;
-    let fbclid: string | undefined;
-    
-    if (currentUrl) {
-      try {
-        const url = new URL(currentUrl);
-        currentUrlParams = url.searchParams;
-        utmSource = currentUrlParams.get("utm_source") || undefined;
-        utmMedium = currentUrlParams.get("utm_medium") || undefined;
-        utmCampaign = currentUrlParams.get("utm_campaign") || undefined;
-        utmContent = currentUrlParams.get("utm_content") || undefined;
-        utmTerm = currentUrlParams.get("utm_term") || undefined;
-        fbclid = currentUrlParams.get("fbclid") || undefined;
-      } catch (e) {
-        console.warn("Failed to parse current URL:", e);
-      }
-    }
+    const utm = currentUrl ? extractUTM(currentUrl) : {};
+    if (referer && !utm.utm_source) Object.assign(utm, extractUTM(referer));
 
     const { parseUserAgent, detectSocialSource } = await import("@/lib/utils");
     const deviceInfo = parseUserAgent(userAgent);
-    
-    let socialSource: string | undefined;
-    if (referer) {
-      socialSource = detectSocialSource(referer, currentUrlParams);
-    }
-    if (!socialSource && utmSource) {
-      socialSource = detectSocialSource("", currentUrlParams);
-    }
-    if (!socialSource && fbclid) {
-      socialSource = "Facebook";
-    }
-    
-    const clickDataRaw: Record<string, any> = {
+
+    let socialSource = detectSocialSource(referer, currentUrl ? new URL(currentUrl).searchParams : undefined);
+    if (!socialSource && utm.fbclid) socialSource = "Facebook";
+
+    const geoData = await lookupIP(ipAddress);
+
+    const { addDoc, collection, doc, getDoc, updateDoc } = await import("firebase/firestore");
+    const { db } = await import("@/lib/firebase");
+
+    const clickData: Record<string, any> = {
       releaseId,
       timestamp: new Date(),
       clickType: "view",
       isBot: deviceInfo.isBot || false,
-      enrichmentStatus: "pending",
-      enrichmentAttempts: 0,
     };
 
-    if (userAgent) clickDataRaw.userAgent = userAgent;
-    if (referer) clickDataRaw.referrer = referer;
-    if (ipAddress) clickDataRaw.ipAddress = ipAddress;
-    if (deviceInfo.platform) clickDataRaw.platform_type = deviceInfo.platform;
-    if (deviceInfo.device) clickDataRaw.device = deviceInfo.device;
-    if (deviceInfo.deviceType) clickDataRaw.deviceType = deviceInfo.deviceType;
-    if (deviceInfo.browser) clickDataRaw.browser = deviceInfo.browser;
-    if (deviceInfo.os) clickDataRaw.os = deviceInfo.os;
-    if (deviceInfo.isBot) clickDataRaw.isBot = deviceInfo.isBot;
-    if (deviceInfo.botType) clickDataRaw.botType = deviceInfo.botType;
-    if (socialSource) clickDataRaw.socialSource = socialSource;
-    if (utmSource) clickDataRaw.utmSource = utmSource;
-    if (utmMedium) clickDataRaw.utmMedium = utmMedium;
-    if (utmCampaign) clickDataRaw.utmCampaign = utmCampaign;
-    if (utmContent) clickDataRaw.utmContent = utmContent;
-    if (utmTerm) clickDataRaw.utmTerm = utmTerm;
-    if (fbclid) clickDataRaw.fbclid = fbclid;
+    if (userAgent) clickData.userAgent = userAgent;
+    if (referer) clickData.referrer = referer;
+    if (ipAddress) clickData.ipAddress = ipAddress;
+    if (deviceInfo.platform) clickData.platform_type = deviceInfo.platform;
+    if (deviceInfo.device) clickData.device = deviceInfo.device;
+    if (deviceInfo.deviceType) clickData.deviceType = deviceInfo.deviceType;
+    if (deviceInfo.browser) clickData.browser = deviceInfo.browser;
+    if (deviceInfo.os) clickData.os = deviceInfo.os;
+    if (deviceInfo.botType) clickData.botType = deviceInfo.botType;
+    if (socialSource) clickData.socialSource = socialSource;
+    if (utm.utm_source) clickData.utmSource = utm.utm_source;
+    if (utm.utm_medium) clickData.utmMedium = utm.utm_medium;
+    if (utm.utm_campaign) clickData.utmCampaign = utm.utm_campaign;
+    if (utm.utm_content) clickData.utmContent = utm.utm_content;
+    if (utm.utm_term) clickData.utmTerm = utm.utm_term;
+    if (utm.fbclid) clickData.fbclid = utm.fbclid;
+    if (geoData.country) clickData.country = geoData.country;
+    if (geoData.city) clickData.city = geoData.city;
+    if (geoData.region) clickData.region = geoData.region;
+    if (geoData.countryCode) clickData.countryCode = geoData.countryCode;
+    if (geoData.timezone) clickData.timezone = geoData.timezone;
 
-    await addDoc(collection(db, "releaseClicks"), clickDataRaw);
+    await addDoc(collection(db, "releaseClicks"), clickData);
 
     const releaseRef = doc(db, "releases", releaseId);
     const releaseDoc = await getDoc(releaseRef);
     if (releaseDoc.exists()) {
-      const currentViews = releaseDoc.data()?.views || 0;
       await updateDoc(releaseRef, {
-        views: currentViews + 1,
+        views: (releaseDoc.data()?.views || 0) + 1,
         updatedAt: new Date(),
       });
     }
   } catch (error: any) {
-    console.error("Error tracking release view:", error);
+    console.error("Error tracking release view:", error.message);
   }
 }
 
@@ -666,41 +493,10 @@ export default async function SlugPage({
   const currentUrl = `${protocol}://${host}${path}${queryString}`;
 
   if (link) {
-
-    console.log("Tracking click for URL:", currentUrl);
-    
-    const trackingPromise = trackClick(link.id, headersList, currentUrl, link);
-    
-    Promise.race([
-      trackingPromise,
-      new Promise((resolve) => setTimeout(() => resolve("timeout"), 100)),
-    ]).then((result) => {
-      if (result === "timeout") {
-        console.warn("Click tracking timed out, continuing in background");
-        trackingPromise.catch((err) => console.error("Background tracking failed:", err));
-      } else {
-        console.log("Click tracked successfully");
-      }
-    }).catch((error) => {
-      console.error("Error in trackClick:", error);
-    });
-
+    after(() => trackClick(link.id, headersList, currentUrl, link));
     return <LinkRedirect link={link} />;
   } else if (release) {
-    // Track release view
-    const trackingPromise = trackReleaseView(release.id, headersList, currentUrl);
-    
-    Promise.race([
-      trackingPromise,
-      new Promise((resolve) => setTimeout(() => resolve("timeout"), 100)),
-    ]).then((result) => {
-      if (result === "timeout") {
-        trackingPromise.catch((err) => console.error("Background tracking failed:", err));
-      }
-    }).catch((error) => {
-      console.error("Error in trackReleaseView:", error);
-    });
-
+    after(() => trackReleaseView(release.id, headersList, currentUrl));
     return <ReleasePageClient release={release} />;
   }
 
