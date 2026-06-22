@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Release } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
-import { ExternalLink, Copy, Edit, Trash2, Eye, Music, BarChart3, X } from "lucide-react";
+import { Copy, Edit, Trash2, Eye, Music, BarChart3, X } from "lucide-react";
 import ReleaseForm from "@/components/release-form";
 
 interface ReleaseListProps {
@@ -151,14 +151,8 @@ export default function ReleaseList({ releases, onUpdate }: ReleaseListProps) {
                   size="sm"
                   onClick={() => copyToClipboard(releaseUrl)}
                 >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(releaseUrl, "_blank")}
-                >
-                  <ExternalLink className="h-4 w-4" />
+                  <Copy className="h-4 w-4 mr-1.5" />
+                  Copy Link
                 </Button>
               </div>
 

@@ -261,14 +261,8 @@ export default function ReleaseDetailsPage() {
                   size="sm"
                   onClick={() => copyToClipboard(releaseUrl)}
                 >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(releaseUrl, "_blank")}
-                >
-                  <ExternalLink className="h-4 w-4" />
+                  <Copy className="h-4 w-4 mr-1.5" />
+                  Copy Link
                 </Button>
               </div>
             </div>

@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Link } from "@/lib/types";
 import { getPlatformIcon } from "@/lib/utils";
 import { formatDate } from "@/lib/utils";
-import { ExternalLink, Copy, Edit, Trash2, BarChart3 } from "lucide-react";
+import { Copy, Edit, Trash2, BarChart3 } from "lucide-react";
 import LinkForm from "@/components/link-form";
 
 interface LinkListProps {
@@ -132,14 +132,8 @@ export default function LinkList({ links, onUpdate }: LinkListProps) {
                   size="sm"
                   onClick={() => copyToClipboard(linkUrl)}
                 >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(linkUrl, "_blank")}
-                >
-                  <ExternalLink className="h-4 w-4" />
+                  <Copy className="h-4 w-4 mr-1.5" />
+                  Copy Link
                 </Button>
               </div>
 
