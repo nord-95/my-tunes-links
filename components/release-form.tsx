@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
+import { ImageInput } from "@/components/image-input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { auth, db } from "@/lib/firebase";
@@ -113,6 +114,7 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
     setValue,
     watch,
@@ -378,17 +380,25 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="artworkUrl">Artwork URL</Label>
-          <Input id="artworkUrl" {...register("artworkUrl")} placeholder="https://example.com/artwork.jpg" />
+          <Label>Artwork <span className="text-red-500">*</span></Label>
+          <Controller
+            name="artworkUrl"
+            control={control}
+            render={({ field }) => (
+              <ImageInput value={field.value} onChange={field.onChange} placeholder="https://example.com/artwork.jpg" />
+            )}
+          />
           {errors.artworkUrl && <p className="text-xs text-red-500">{errors.artworkUrl.message}</p>}
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="artistLogoUrl">Artist Logo URL <span className="text-gray-400 font-normal">(optional)</span></Label>
-          <Input
-            id="artistLogoUrl"
-            {...register("artistLogoUrl")}
-            placeholder="https://example.com/logo.png"
+          <Label>Artist Logo <span className="text-gray-400 font-normal">(optional)</span></Label>
+          <Controller
+            name="artistLogoUrl"
+            control={control}
+            render={({ field }) => (
+              <ImageInput value={field.value || ""} onChange={field.onChange} placeholder="https://example.com/logo.png" />
+            )}
           />
           <p className="text-xs text-gray-400">If not set, artist name is shown instead</p>
           {errors.artistLogoUrl && (
@@ -483,8 +493,14 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
               <Input id="ogType" {...register("ogType")} placeholder="music.song, music.album" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ogImage">OG Image URL</Label>
-              <Input id="ogImage" {...register("ogImage")} placeholder="https://..." />
+              <Label>OG Image</Label>
+              <Controller
+                name="ogImage"
+                control={control}
+                render={({ field }) => (
+                  <ImageInput value={field.value || ""} onChange={field.onChange} placeholder="https://..." />
+                )}
+              />
               {errors.ogImage && <p className="text-xs text-red-500">{errors.ogImage.message}</p>}
             </div>
             <div className="space-y-1.5">
@@ -518,8 +534,14 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
               <Input id="twitterTitle" {...register("twitterTitle")} placeholder="Defaults to OG Title" />
             </div>
             <div className="space-y-1.5 col-span-2">
-              <Label htmlFor="twitterImage">Twitter Image URL</Label>
-              <Input id="twitterImage" {...register("twitterImage")} placeholder="https://..." />
+              <Label>Twitter Image</Label>
+              <Controller
+                name="twitterImage"
+                control={control}
+                render={({ field }) => (
+                  <ImageInput value={field.value || ""} onChange={field.onChange} placeholder="https://..." />
+                )}
+              />
               {errors.twitterImage && (
                 <p className="text-xs text-red-500">{errors.twitterImage.message}</p>
               )}
@@ -528,8 +550,14 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="siteIconUrl">Site Icon URL</Label>
-          <Input id="siteIconUrl" {...register("siteIconUrl")} placeholder="https://example.com/favicon.png" />
+          <Label>Site Icon</Label>
+          <Controller
+            name="siteIconUrl"
+            control={control}
+            render={({ field }) => (
+              <ImageInput value={field.value || ""} onChange={field.onChange} placeholder="https://example.com/favicon.png" />
+            )}
+          />
           {errors.siteIconUrl && <p className="text-xs text-red-500">{errors.siteIconUrl.message}</p>}
         </div>
       </Section>

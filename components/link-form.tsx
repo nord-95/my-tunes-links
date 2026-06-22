@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
+import { ImageInput } from "@/components/image-input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { auth, db } from "@/lib/firebase";
@@ -109,6 +110,7 @@ export default function LinkForm({ onSuccess, onCancel, initialData }: LinkFormP
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
     setValue,
     watch,
@@ -418,8 +420,14 @@ export default function LinkForm({ onSuccess, onCancel, initialData }: LinkFormP
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ogImage">OG Image URL</Label>
-              <Input id="ogImage" type="url" {...register("ogImage")} placeholder="https://..." />
+              <Label>OG Image</Label>
+              <Controller
+                name="ogImage"
+                control={control}
+                render={({ field }) => (
+                  <ImageInput value={field.value || ""} onChange={field.onChange} placeholder="https://..." />
+                )}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="ogSiteName">Site Name</Label>
@@ -457,15 +465,27 @@ export default function LinkForm({ onSuccess, onCancel, initialData }: LinkFormP
               <Input id="twitterTitle" {...register("twitterTitle")} placeholder="Defaults to OG title" />
             </div>
             <div className="space-y-1.5 col-span-2">
-              <Label htmlFor="twitterImage">Twitter Image URL</Label>
-              <Input id="twitterImage" type="url" {...register("twitterImage")} placeholder="https://..." />
+              <Label>Twitter Image</Label>
+              <Controller
+                name="twitterImage"
+                control={control}
+                render={({ field }) => (
+                  <ImageInput value={field.value || ""} onChange={field.onChange} placeholder="https://..." />
+                )}
+              />
             </div>
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="siteIconUrl">Site Icon URL</Label>
-          <Input id="siteIconUrl" type="url" {...register("siteIconUrl")} placeholder="https://example.com/icon.png" />
+          <Label>Site Icon</Label>
+          <Controller
+            name="siteIconUrl"
+            control={control}
+            render={({ field }) => (
+              <ImageInput value={field.value || ""} onChange={field.onChange} placeholder="https://example.com/icon.png" />
+            )}
+          />
         </div>
       </Section>
 

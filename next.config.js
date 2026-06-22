@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  serverExternalPackages: ['@maxmind/geoip2-node'],
+  serverExternalPackages: ['@maxmind/geoip2-node', '@aws-sdk/client-s3'],
   images: {
     remotePatterns: [
       {
