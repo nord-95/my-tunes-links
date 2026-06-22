@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import AppLayout from "@/components/app-layout";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -26,18 +26,13 @@ export default function SettingsPage() {
         return;
       }
       setUser(currentUser);
-      // Load settings
       try {
-        const settingsRef = doc(db, "settings", "app");
-        const snap = await getDoc(settingsRef);
+        const snap = await getDoc(doc(db, "settings", "app"));
         if (snap.exists()) {
           setNotFoundRedirectUrl(snap.data()?.notFoundRedirectUrl || "");
         }
-      } catch (e) {
-        // ignore
-      } finally {
-        setLoading(false);
-      }
+      } catch {}
+      setLoading(false);
     });
     return () => unsub();
   }, [router]);
@@ -48,69 +43,60 @@ export default function SettingsPage() {
     try {
       const settingsRef = doc(db, "settings", "app");
       const snap = await getDoc(settingsRef);
-      const data: any = {};
-      if (notFoundRedirectUrl && notFoundRedirectUrl.trim()) {
-        data.notFoundRedirectUrl = notFoundRedirectUrl.trim();
-      } else {
-        data.notFoundRedirectUrl = "";
-      }
+      const data = { notFoundRedirectUrl: notFoundRedirectUrl.trim() };
       if (snap.exists()) {
         await updateDoc(settingsRef, data);
       } else {
         await setDoc(settingsRef, data);
       }
-      toast({ title: "Saved", description: "Settings updated successfully" });
+      toast({ title: "Saved", description: "Settings updated" });
     } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to save settings", variant: "destructive" });
+      toast({ title: "Error", description: error.message || "Failed to save", variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div>Loading settings...</div>
-      </div>
-    );
-  }
+  if (loading || !user) return null;
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="container mx-auto max-w-2xl space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Settings</CardTitle>
-            <CardDescription>Control global app behavior</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="notFoundRedirectUrl">404 Redirect URL</Label>
-              <Input
-                id="notFoundRedirectUrl"
-                placeholder="https://example.com"
-                value={notFoundRedirectUrl}
-                onChange={(e) => setNotFoundRedirectUrl(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                If a link is not found or is inactive, users will be redirected here. Leave empty to show the built-in 404 page.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? "Saving..." : "Save Settings"}
+    <AppLayout title="Settings">
+      <div className="max-w-lg">
+        <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-5">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">Application</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Global settings for your workspace</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="notFoundRedirectUrl">404 Redirect URL</Label>
+            <Input
+              id="notFoundRedirectUrl"
+              placeholder="https://example.com"
+              value={notFoundRedirectUrl}
+              onChange={(e) => setNotFoundRedirectUrl(e.target.value)}
+            />
+            <p className="text-xs text-gray-400">
+              Where to redirect users when a link is not found or inactive. Leave empty to show the built-in 404 page.
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving..." : "Save"}
+            </Button>
+            {notFoundRedirectUrl && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => window.open(notFoundRedirectUrl, "_blank")}
+              >
+                Test URL
               </Button>
-              {notFoundRedirectUrl && (
-                <Button type="button" variant="outline" onClick={() => window.open(notFoundRedirectUrl, "_blank")}>
-                  Open Redirect URL
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
-
-

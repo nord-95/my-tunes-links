@@ -11,8 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { generateSlug } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { MusicPlatform, MusicLink, ReleaseType, Artist } from "@/lib/types";
-import { Plus, X } from "lucide-react";
+import { Plus, X, ChevronDown, RefreshCw } from "lucide-react";
 
 const releaseSchema = z.object({
   artistName: z.string().min(1, "Artist name is required"),
@@ -22,7 +23,6 @@ const releaseSchema = z.object({
   releaseType: z.string().min(1, "Release type is required"),
   customReleaseType: z.string().optional(),
   slug: z.string().min(3, "Slug must be at least 3 characters").optional(),
-  // Open Graph / Social Media Metadata
   ogTitle: z.string().optional(),
   ogDescription: z.string().optional(),
   ogImage: z.string().url("Must be a valid URL").optional().or(z.literal("")),
@@ -63,21 +63,52 @@ const MUSIC_PLATFORMS: MusicPlatform[] = [
   "pandora",
 ];
 
-export default function ReleaseForm({ onSuccess, onCancel, initialData }: ReleaseFormProps) {
-  const [musicLinks, setMusicLinks] = useState<MusicLink[]>(
-    initialData?.musicLinks || []
+function Section({
+  title,
+  description,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex items-center justify-between w-full px-4 py-3 text-left bg-gray-50 hover:bg-gray-100 transition-colors"
+      >
+        <div>
+          <span className="text-sm font-medium text-gray-900">{title}</span>
+          {description && (
+            <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+          )}
+        </div>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 text-gray-400 transition-transform shrink-0 ml-4",
+            open && "rotate-180"
+          )}
+        />
+      </button>
+      {open && <div className="p-4 space-y-4">{children}</div>}
+    </div>
   );
+}
+
+export default function ReleaseForm({ onSuccess, onCancel, initialData }: ReleaseFormProps) {
+  const [musicLinks, setMusicLinks] = useState<MusicLink[]>(initialData?.musicLinks || []);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [selectedArtistId, setSelectedArtistId] = useState<string>("");
-  const [newMusicLink, setNewMusicLink] = useState<{
-    platform: MusicPlatform;
-    url: string;
-    title: string;
-  }>({
+  const [newMusicLink, setNewMusicLink] = useState<{ platform: MusicPlatform; url: string }>({
     platform: "spotify",
     url: "",
-    title: "",
   });
+
   const { toast } = useToast();
   const {
     register,
@@ -87,120 +118,84 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
     watch,
   } = useForm<ReleaseFormData>({
     resolver: zodResolver(releaseSchema),
-    defaultValues: initialData ? {
-      artistName: initialData.artistName || "",
-      releaseName: initialData.releaseName || "",
-      artworkUrl: initialData.artworkUrl || "",
-      artistLogoUrl: initialData.artistLogoUrl || "",
-      releaseType: RELEASE_TYPES.includes(initialData.releaseType as ReleaseType) 
-        ? initialData.releaseType 
-        : "Custom",
-      customReleaseType: RELEASE_TYPES.includes(initialData.releaseType as ReleaseType) 
-        ? "" 
-        : (initialData.releaseType || ""),
-      slug: initialData.slug || "",
-      ogTitle: initialData.ogTitle || "",
-      ogDescription: initialData.ogDescription || "",
-      ogImage: initialData.ogImage || "",
-      ogType: initialData.ogType || "",
-      ogSiteName: initialData.ogSiteName || "",
-      twitterCard: initialData.twitterCard || "",
-      twitterTitle: initialData.twitterTitle || "",
-      twitterDescription: initialData.twitterDescription || "",
-      twitterImage: initialData.twitterImage || "",
-      siteIconUrl: initialData.siteIconUrl || "",
-    } : {
-      artistName: "",
-      releaseName: "",
-      artworkUrl: "",
-      artistLogoUrl: "",
-      releaseType: "Single",
-      customReleaseType: "",
-      slug: "",
-      ogTitle: "",
-      ogDescription: "",
-      ogImage: "",
-      ogType: "",
-      ogSiteName: "",
-      twitterCard: "",
-      twitterTitle: "",
-      twitterDescription: "",
-      twitterImage: "",
-      siteIconUrl: "",
-    },
+    defaultValues: initialData
+      ? {
+          artistName: initialData.artistName || "",
+          releaseName: initialData.releaseName || "",
+          artworkUrl: initialData.artworkUrl || "",
+          artistLogoUrl: initialData.artistLogoUrl || "",
+          releaseType: RELEASE_TYPES.includes(initialData.releaseType as ReleaseType)
+            ? initialData.releaseType
+            : "Custom",
+          customReleaseType: RELEASE_TYPES.includes(initialData.releaseType as ReleaseType)
+            ? ""
+            : initialData.releaseType || "",
+          slug: initialData.slug || "",
+          ogTitle: initialData.ogTitle || "",
+          ogDescription: initialData.ogDescription || "",
+          ogImage: initialData.ogImage || "",
+          ogType: initialData.ogType || "",
+          ogSiteName: initialData.ogSiteName || "",
+          twitterCard: initialData.twitterCard || "",
+          twitterTitle: initialData.twitterTitle || "",
+          twitterDescription: initialData.twitterDescription || "",
+          twitterImage: initialData.twitterImage || "",
+          siteIconUrl: initialData.siteIconUrl || "",
+        }
+      : {
+          artistName: "",
+          releaseName: "",
+          artworkUrl: "",
+          artistLogoUrl: "",
+          releaseType: "Single",
+          customReleaseType: "",
+          slug: "",
+          ogTitle: "",
+          ogDescription: "",
+          ogImage: "",
+          ogType: "",
+          ogSiteName: "",
+          twitterCard: "",
+          twitterTitle: "",
+          twitterDescription: "",
+          twitterImage: "",
+          siteIconUrl: "",
+        },
   });
 
   const releaseType = watch("releaseType");
   const slug = watch("slug");
-  const artistName = watch("artistName");
 
   useEffect(() => {
     const loadArtists = async () => {
       try {
         const user = auth.currentUser;
         if (!user) return;
-
-        const artistsRef = collection(db, "artists");
-        const q = query(
-          artistsRef,
-          where("userId", "==", user.uid),
-          orderBy("name", "asc")
-        );
+        const q = query(collection(db, "artists"), where("userId", "==", user.uid));
         const snapshot = await getDocs(q);
-        const artistsData = snapshot.docs.map((doc) => ({
+        const data = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
           createdAt: doc.data().createdAt?.toDate() || new Date(),
           updatedAt: doc.data().updatedAt?.toDate() || new Date(),
         })) as Artist[];
-        setArtists(artistsData);
+        data.sort((a, b) => a.name.localeCompare(b.name));
+        setArtists(data);
 
-        // If editing and artistName matches an artist, select it
-        if (initialData?.artistName && artistsData.length > 0) {
-          const matchingArtist = artistsData.find(a => a.name === initialData.artistName);
-          if (matchingArtist) {
-            setSelectedArtistId(matchingArtist.id);
-          }
+        if (initialData?.artistName) {
+          const match = data.find((a) => a.name === initialData.artistName);
+          if (match) setSelectedArtistId(match.id);
         }
-      } catch (error: any) {
-        // Silently handle index errors - try without orderBy
-        if (error.code === "failed-precondition" && error.message?.includes("index")) {
-          try {
-            const user = auth.currentUser;
-            if (!user) return;
-            const artistsRef = collection(db, "artists");
-            const q = query(artistsRef, where("userId", "==", user.uid));
-            const snapshot = await getDocs(q);
-            const artistsData = snapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-              createdAt: doc.data().createdAt?.toDate() || new Date(),
-              updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-            })) as Artist[];
-            artistsData.sort((a, b) => a.name.localeCompare(b.name));
-            setArtists(artistsData);
-            
-            if (initialData?.artistName && artistsData.length > 0) {
-              const matchingArtist = artistsData.find(a => a.name === initialData.artistName);
-              if (matchingArtist) {
-                setSelectedArtistId(matchingArtist.id);
-              }
-            }
-          } catch (fallbackError) {
-            console.error("Error loading artists:", fallbackError);
-          }
-        } else {
-          console.error("Error loading artists:", error);
-        }
+      } catch {
+        // silently fail
       }
     };
-
     loadArtists();
   }, [initialData]);
 
   const handleArtistSelect = (artistId: string) => {
     setSelectedArtistId(artistId);
-    const artist = artists.find(a => a.id === artistId);
+    const artist = artists.find((a) => a.id === artistId);
     if (artist) {
       setValue("artistName", artist.name);
       if (artist.profileImageUrl && !initialData?.artistLogoUrl) {
@@ -209,51 +204,49 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
     }
   };
 
-  const generateRandomSlug = () => {
-    setValue("slug", generateSlug(8));
-  };
+  const generateRandomSlug = () => setValue("slug", generateSlug(8));
 
   const addMusicLink = () => {
     if (!newMusicLink.url) {
-      toast({
-        title: "Error",
-        description: "Please enter a URL for the music link",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Enter a URL for the platform", variant: "destructive" });
       return;
     }
-
-    setMusicLinks([
-      ...musicLinks,
-      {
-        platform: newMusicLink.platform,
-        url: newMusicLink.url,
-        ...(newMusicLink.title && newMusicLink.title.trim() ? { title: newMusicLink.title.trim() } : {}),
-      },
-    ]);
-    setNewMusicLink({ platform: "spotify", url: "", title: "" });
+    setMusicLinks([...musicLinks, { platform: newMusicLink.platform, url: newMusicLink.url }]);
+    setNewMusicLink({ platform: "spotify", url: "" });
   };
 
   const removeMusicLink = (index: number) => {
     setMusicLinks(musicLinks.filter((_, i) => i !== index));
   };
 
+  const cleanData = (obj: any): any => {
+    if (obj === null || obj === undefined) return null;
+    if (Array.isArray(obj)) return obj.map(cleanData).filter((i) => i !== undefined);
+    if (typeof obj === "object" && obj.constructor === Object) {
+      const cleaned: any = {};
+      for (const key in obj) {
+        if (obj[key] !== undefined) {
+          const v = cleanData(obj[key]);
+          if (v !== undefined) cleaned[key] = v;
+        }
+      }
+      return cleaned;
+    }
+    return obj;
+  };
+
   const onSubmit = async (data: ReleaseFormData) => {
     try {
       const user = auth.currentUser;
       if (!user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to create a release",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "You must be logged in", variant: "destructive" });
         return;
       }
 
-      // Determine final release type
-      const finalReleaseType = data.releaseType === "Custom" && data.customReleaseType
-        ? data.customReleaseType.trim()
-        : data.releaseType;
+      const finalReleaseType =
+        data.releaseType === "Custom" && data.customReleaseType
+          ? data.customReleaseType.trim()
+          : data.releaseType;
 
       const releaseData: any = {
         userId: user.uid,
@@ -268,414 +261,280 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
         updatedAt: new Date(),
       };
 
-      // Add artist logo if provided
-      if (data.artistLogoUrl && data.artistLogoUrl.trim()) {
-        releaseData.artistLogoUrl = data.artistLogoUrl.trim();
-      }
-
-      // Only include musicLinks if there are any, and clean them
+      if (data.artistLogoUrl?.trim()) releaseData.artistLogoUrl = data.artistLogoUrl.trim();
       if (musicLinks.length > 0) {
-        releaseData.musicLinks = musicLinks.map(link => ({
-          platform: link.platform,
-          url: link.url,
-          ...(link.title && { title: link.title }),
+        releaseData.musicLinks = musicLinks.map((l) => ({
+          platform: l.platform,
+          url: l.url,
+          ...(l.title && { title: l.title }),
         }));
       }
+      if (data.ogTitle?.trim()) releaseData.ogTitle = data.ogTitle.trim();
+      if (data.ogDescription?.trim()) releaseData.ogDescription = data.ogDescription.trim();
+      if (data.ogImage?.trim()) releaseData.ogImage = data.ogImage.trim();
+      if (data.ogType?.trim()) releaseData.ogType = data.ogType.trim();
+      if (data.ogSiteName?.trim()) releaseData.ogSiteName = data.ogSiteName.trim();
+      if (data.twitterCard?.trim()) releaseData.twitterCard = data.twitterCard.trim();
+      if (data.twitterTitle?.trim()) releaseData.twitterTitle = data.twitterTitle.trim();
+      if (data.twitterDescription?.trim()) releaseData.twitterDescription = data.twitterDescription.trim();
+      if (data.twitterImage?.trim()) releaseData.twitterImage = data.twitterImage.trim();
+      if (data.siteIconUrl?.trim()) releaseData.siteIconUrl = data.siteIconUrl.trim();
 
-      // Add Open Graph / Social Media Metadata
-      if (data.ogTitle && data.ogTitle.trim()) {
-        releaseData.ogTitle = data.ogTitle.trim();
-      }
-      if (data.ogDescription && data.ogDescription.trim()) {
-        releaseData.ogDescription = data.ogDescription.trim();
-      }
-      if (data.ogImage && data.ogImage.trim()) {
-        releaseData.ogImage = data.ogImage.trim();
-      }
-      if (data.ogType && data.ogType.trim()) {
-        releaseData.ogType = data.ogType.trim();
-      }
-      if (data.ogSiteName && data.ogSiteName.trim()) {
-        releaseData.ogSiteName = data.ogSiteName.trim();
-      }
-      if (data.twitterCard && data.twitterCard.trim()) {
-        releaseData.twitterCard = data.twitterCard.trim();
-      }
-      if (data.twitterTitle && data.twitterTitle.trim()) {
-        releaseData.twitterTitle = data.twitterTitle.trim();
-      }
-      if (data.twitterDescription && data.twitterDescription.trim()) {
-        releaseData.twitterDescription = data.twitterDescription.trim();
-      }
-      if (data.twitterImage && data.twitterImage.trim()) {
-        releaseData.twitterImage = data.twitterImage.trim();
-      }
-      if (data.siteIconUrl && data.siteIconUrl.trim()) {
-        releaseData.siteIconUrl = data.siteIconUrl.trim();
-      }
-
-      // Remove any undefined values (Firestore doesn't allow undefined)
-      const cleanData = (obj: any): any => {
-        if (obj === null || obj === undefined) {
-          return null;
-        }
-        if (Array.isArray(obj)) {
-          return obj.map(item => cleanData(item)).filter(item => item !== undefined);
-        }
-        if (typeof obj === 'object' && obj.constructor === Object) {
-          const cleaned: any = {};
-          for (const key in obj) {
-            if (obj[key] !== undefined) {
-              const cleanedValue = cleanData(obj[key]);
-              if (cleanedValue !== undefined) {
-                cleaned[key] = cleanedValue;
-              }
-            }
-          }
-          return cleaned;
-        }
-        return obj;
-      };
-
-      const cleanedReleaseData = cleanData(releaseData);
+      const cleaned = cleanData(releaseData);
 
       if (initialData) {
-        // Don't update createdAt on edit
-        const { createdAt, ...updateData } = cleanedReleaseData;
+        const { createdAt, ...updateData } = cleaned;
         await updateDoc(doc(db, "releases", initialData.id), cleanData(updateData));
-        toast({
-          title: "Success",
-          description: "Release updated successfully",
-        });
+        toast({ title: "Saved", description: "Release updated" });
       } else {
-        console.log("Creating release with data:", cleanedReleaseData);
-        console.log("User ID:", user.uid);
-        await addDoc(collection(db, "releases"), cleanedReleaseData);
-        toast({
-          title: "Success",
-          description: "Release created successfully",
-        });
+        await addDoc(collection(db, "releases"), cleaned);
+        toast({ title: "Created", description: "Release created" });
       }
 
       onSuccess?.();
     } catch (error: any) {
-      console.error("Error creating release:", error);
-      console.error("Error code:", error.code);
-      console.error("Error message:", error.message);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save release",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message || "Failed to save release", variant: "destructive" });
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {artists.length > 0 && (
-        <div className="space-y-2">
-          <Label htmlFor="artistSelect">Select Artist (Optional)</Label>
-          <select
-            id="artistSelect"
-            value={selectedArtistId}
-            onChange={(e) => {
-              const value = e.target.value;
-              setSelectedArtistId(value);
-              if (value) {
-                handleArtistSelect(value);
-              } else {
-                setValue("artistName", "");
-                setValue("artistLogoUrl", "");
-              }
-            }}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <option value="">-- Select an artist or enter manually --</option>
-            {artists.map((artist) => (
-              <option key={artist.id} value={artist.id}>
-                {artist.name}
-              </option>
-            ))}
-          </select>
-          <p className="text-sm text-muted-foreground">
-            Select an existing artist or enter the artist name manually below
-          </p>
-        </div>
-      )}
-
-      <div className="space-y-2">
-        <Label htmlFor="artistName">Artist Name *</Label>
-        <Input
-          id="artistName"
-          {...register("artistName")}
-          placeholder="Ryan Miller"
-          onChange={(e) => {
-            // If manually typing, clear selected artist
-            if (selectedArtistId && e.target.value !== artists.find(a => a.id === selectedArtistId)?.name) {
-              setSelectedArtistId("");
-            }
-            register("artistName").onChange(e);
-          }}
-        />
-        {errors.artistName && (
-          <p className="text-sm text-destructive">{errors.artistName.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="releaseName">Release Name *</Label>
-        <Input
-          id="releaseName"
-          {...register("releaseName")}
-          placeholder="My New Single"
-        />
-        {errors.releaseName && (
-          <p className="text-sm text-destructive">{errors.releaseName.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="artworkUrl">Artwork URL *</Label>
-        <Input
-          id="artworkUrl"
-          {...register("artworkUrl")}
-          placeholder="https://example.com/artwork.jpg"
-        />
-        {errors.artworkUrl && (
-          <p className="text-sm text-destructive">{errors.artworkUrl.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="artistLogoUrl">Artist Logo URL (Optional)</Label>
-        <Input
-          id="artistLogoUrl"
-          {...register("artistLogoUrl")}
-          placeholder="https://example.com/logo.png"
-        />
-        {errors.artistLogoUrl && (
-          <p className="text-sm text-destructive">{errors.artistLogoUrl.message}</p>
-        )}
-        <p className="text-sm text-muted-foreground">
-          If not provided, artist name will be displayed instead
-        </p>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="releaseType">Release Type *</Label>
-        <select
-          id="releaseType"
-          {...register("releaseType")}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {RELEASE_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-          <option value="Custom">Custom</option>
-        </select>
-        {errors.releaseType && (
-          <p className="text-sm text-destructive">{errors.releaseType.message}</p>
-        )}
-      </div>
-
-      {releaseType === "Custom" && (
-        <div className="space-y-2">
-          <Label htmlFor="customReleaseType">Custom Release Type *</Label>
-          <Input
-            id="customReleaseType"
-            {...register("customReleaseType")}
-            placeholder="Enter custom release type"
-          />
-          {errors.customReleaseType && (
-            <p className="text-sm text-destructive">{errors.customReleaseType.message}</p>
-          )}
-        </div>
-      )}
-
-      <div className="space-y-2">
-        <Label htmlFor="slug">Slug (Optional)</Label>
-        <div className="flex gap-2">
-          <Input
-            id="slug"
-            {...register("slug")}
-            placeholder="auto-generated"
-          />
-          <Button type="button" variant="outline" onClick={generateRandomSlug}>
-            Generate
-          </Button>
-        </div>
-        {errors.slug && (
-          <p className="text-sm text-destructive">{errors.slug.message}</p>
-        )}
-        <p className="text-sm text-muted-foreground">
-          URL-friendly identifier. If left empty, a random slug will be generated.
-        </p>
-      </div>
-
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div className="space-y-4">
-        <Label>Music Streaming URLs</Label>
-        <div className="space-y-2">
-          <div className="flex gap-2">
+        {artists.length > 0 && (
+          <div className="space-y-1.5">
+            <Label>Artist</Label>
             <select
-              value={newMusicLink.platform}
-              onChange={(e) =>
-                setNewMusicLink({ ...newMusicLink, platform: e.target.value as MusicPlatform })
-              }
-              className="flex h-10 w-40 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={selectedArtistId}
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleArtistSelect(e.target.value);
+                } else {
+                  setSelectedArtistId("");
+                  setValue("artistName", "");
+                  setValue("artistLogoUrl", "");
+                }
+              }}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              {MUSIC_PLATFORMS.map((platform) => (
-                <option key={platform} value={platform}>
-                  {platform.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+              <option value="">Select an artist or enter manually below</option>
+              {artists.map((artist) => (
+                <option key={artist.id} value={artist.id}>
+                  {artist.name}
                 </option>
               ))}
             </select>
-            <Input
-              value={newMusicLink.url}
-              onChange={(e) =>
-                setNewMusicLink({ ...newMusicLink, url: e.target.value })
-              }
-              placeholder="https://open.spotify.com/..."
-              className="flex-1"
-            />
-            <Button type="button" onClick={addMusicLink}>
-              <Plus className="h-4 w-4" />
-            </Button>
           </div>
-          {musicLinks.length > 0 && (
-            <div className="space-y-2">
-              {musicLinks.map((link, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-2 p-2 border rounded"
-                >
-                  <span className="text-sm font-medium capitalize flex-1">
-                    {link.platform.replace("-", " ")}: {link.url}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeMusicLink(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
+        )}
+
+        <div className="space-y-1.5">
+          <Label htmlFor="artistName">Artist Name</Label>
+          <Input
+            id="artistName"
+            {...register("artistName")}
+            placeholder="Artist name"
+            onChange={(e) => {
+              if (selectedArtistId && e.target.value !== artists.find((a) => a.id === selectedArtistId)?.name) {
+                setSelectedArtistId("");
+              }
+              register("artistName").onChange(e);
+            }}
+          />
+          {errors.artistName && <p className="text-xs text-red-500">{errors.artistName.message}</p>}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="releaseName">Release Name</Label>
+          <Input id="releaseName" {...register("releaseName")} placeholder="My New Single" />
+          {errors.releaseName && <p className="text-xs text-red-500">{errors.releaseName.message}</p>}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="releaseType">Release Type</Label>
+            <select
+              id="releaseType"
+              {...register("releaseType")}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              {RELEASE_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
               ))}
+              <option value="Custom">Custom</option>
+            </select>
+          </div>
+
+          {releaseType === "Custom" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="customReleaseType">Custom Type</Label>
+              <Input
+                id="customReleaseType"
+                {...register("customReleaseType")}
+                placeholder="e.g., Mixtape"
+              />
             </div>
           )}
         </div>
-      </div>
 
-      <div className="space-y-4 border-t pt-4">
-        <h3 className="text-lg font-semibold">Meta Fields (Open Graph & Social Media)</h3>
-        
-        <div className="space-y-2">
-          <Label htmlFor="ogTitle">OG Title</Label>
-          <Input
-            id="ogTitle"
-            {...register("ogTitle")}
-            placeholder="Defaults to: {Artist Name} - {Release Name}"
-          />
+        <div className="space-y-1.5">
+          <Label htmlFor="artworkUrl">Artwork URL</Label>
+          <Input id="artworkUrl" {...register("artworkUrl")} placeholder="https://example.com/artwork.jpg" />
+          {errors.artworkUrl && <p className="text-xs text-red-500">{errors.artworkUrl.message}</p>}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="ogDescription">OG Description</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="artistLogoUrl">Artist Logo URL <span className="text-gray-400 font-normal">(optional)</span></Label>
           <Input
-            id="ogDescription"
-            {...register("ogDescription")}
-            placeholder="Description for social media previews"
+            id="artistLogoUrl"
+            {...register("artistLogoUrl")}
+            placeholder="https://example.com/logo.png"
           />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="ogImage">OG Image URL</Label>
-          <Input
-            id="ogImage"
-            {...register("ogImage")}
-            placeholder="https://example.com/og-image.jpg"
-          />
-          {errors.ogImage && (
-            <p className="text-sm text-destructive">{errors.ogImage.message}</p>
+          <p className="text-xs text-gray-400">If not set, artist name is shown instead</p>
+          {errors.artistLogoUrl && (
+            <p className="text-xs text-red-500">{errors.artistLogoUrl.message}</p>
           )}
         </div>
 
+        <div className="space-y-1.5">
+          <Label htmlFor="slug">Custom Slug <span className="text-gray-400 font-normal">(optional)</span></Label>
+          <div className="flex gap-2">
+            <Input
+              id="slug"
+              {...register("slug")}
+              placeholder="auto-generated if left empty"
+              className="flex-1"
+            />
+            <Button type="button" variant="outline" size="sm" onClick={generateRandomSlug}>
+              <RefreshCw className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          {slug && (
+            <p className="text-xs text-gray-500">
+              {typeof window !== "undefined" && window.location.origin}/{slug}
+            </p>
+          )}
+          {errors.slug && <p className="text-xs text-red-500">{errors.slug.message}</p>}
+        </div>
+      </div>
+
+      <Section title="Streaming Links" description="Add platform links for this release" defaultOpen={true}>
         <div className="space-y-2">
-          <Label htmlFor="ogType">OG Type</Label>
-          <Input
-            id="ogType"
-            {...register("ogType")}
-            placeholder="music.song, music.album, etc."
-          />
+          {musicLinks.map((link, index) => (
+            <div
+              key={index}
+              className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-md"
+            >
+              <span className="text-xs font-medium text-gray-700 capitalize w-28 shrink-0">
+                {link.platform.replace(/-/g, " ")}
+              </span>
+              <span className="text-xs text-gray-500 flex-1 truncate">{link.url}</span>
+              <button
+                type="button"
+                onClick={() => removeMusicLink(index)}
+                className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="ogSiteName">OG Site Name</Label>
-          <Input
-            id="ogSiteName"
-            {...register("ogSiteName")}
-            placeholder="My Tunes"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="twitterCard">Twitter Card Type</Label>
+        <div className="flex gap-2">
           <select
-            id="twitterCard"
-            {...register("twitterCard")}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={newMusicLink.platform}
+            onChange={(e) =>
+              setNewMusicLink({ ...newMusicLink, platform: e.target.value as MusicPlatform })
+            }
+            className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
           >
-            <option value="">Select...</option>
-            <option value="summary">Summary</option>
-            <option value="summary_large_image">Summary Large Image</option>
+            {MUSIC_PLATFORMS.map((p) => (
+              <option key={p} value={p}>
+                {p.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+              </option>
+            ))}
           </select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="twitterTitle">Twitter Title</Label>
           <Input
-            id="twitterTitle"
-            {...register("twitterTitle")}
-            placeholder="Defaults to OG Title"
+            placeholder="https://open.spotify.com/..."
+            value={newMusicLink.url}
+            onChange={(e) => setNewMusicLink({ ...newMusicLink, url: e.target.value })}
+            className="flex-1 h-9"
           />
+          <Button type="button" size="sm" variant="outline" onClick={addMusicLink}>
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </Section>
+
+      <Section
+        title="Social Media Preview"
+        description="Open Graph and Twitter Card metadata"
+        defaultOpen={false}
+      >
+        <div className="space-y-3">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Open Graph</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="ogTitle">OG Title</Label>
+              <Input id="ogTitle" {...register("ogTitle")} placeholder="Artist - Release Name" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ogType">OG Type</Label>
+              <Input id="ogType" {...register("ogType")} placeholder="music.song, music.album" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ogImage">OG Image URL</Label>
+              <Input id="ogImage" {...register("ogImage")} placeholder="https://..." />
+              {errors.ogImage && <p className="text-xs text-red-500">{errors.ogImage.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ogSiteName">Site Name</Label>
+              <Input id="ogSiteName" {...register("ogSiteName")} placeholder="My Tunes" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ogDescription">OG Description</Label>
+            <Input id="ogDescription" {...register("ogDescription")} placeholder="Description for social previews" />
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="twitterDescription">Twitter Description</Label>
-          <Input
-            id="twitterDescription"
-            {...register("twitterDescription")}
-            placeholder="Defaults to OG Description"
-          />
+        <div className="space-y-3">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Twitter Card</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="twitterCard">Card Type</Label>
+              <select
+                id="twitterCard"
+                {...register("twitterCard")}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Select...</option>
+                <option value="summary">Summary</option>
+                <option value="summary_large_image">Summary Large Image</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="twitterTitle">Twitter Title</Label>
+              <Input id="twitterTitle" {...register("twitterTitle")} placeholder="Defaults to OG Title" />
+            </div>
+            <div className="space-y-1.5 col-span-2">
+              <Label htmlFor="twitterImage">Twitter Image URL</Label>
+              <Input id="twitterImage" {...register("twitterImage")} placeholder="https://..." />
+              {errors.twitterImage && (
+                <p className="text-xs text-red-500">{errors.twitterImage.message}</p>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="twitterImage">Twitter Image URL</Label>
-          <Input
-            id="twitterImage"
-            {...register("twitterImage")}
-            placeholder="https://example.com/twitter-image.jpg"
-          />
-          {errors.twitterImage && (
-            <p className="text-sm text-destructive">{errors.twitterImage.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <Label htmlFor="siteIconUrl">Site Icon URL</Label>
-          <Input
-            id="siteIconUrl"
-            {...register("siteIconUrl")}
-            placeholder="https://example.com/favicon.png"
-          />
-          {errors.siteIconUrl && (
-            <p className="text-sm text-destructive">{errors.siteIconUrl.message}</p>
-          )}
+          <Input id="siteIconUrl" {...register("siteIconUrl")} placeholder="https://example.com/favicon.png" />
+          {errors.siteIconUrl && <p className="text-xs text-red-500">{errors.siteIconUrl.message}</p>}
         </div>
-      </div>
+      </Section>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 pt-1">
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Saving..." : initialData ? "Update Release" : "Create Release"}
         </Button>
@@ -688,4 +547,3 @@ export default function ReleaseForm({ onSuccess, onCancel, initialData }: Releas
     </form>
   );
 }
-

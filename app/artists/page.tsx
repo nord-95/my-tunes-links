@@ -4,16 +4,16 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
-import { Card, CardContent } from "@/components/ui/card";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import AppLayout from "@/components/app-layout";
 import { Button } from "@/components/ui/button";
 import { Artist } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
-import { User, Plus, Edit, Eye } from "lucide-react";
+import { Users, Plus, Edit, Eye } from "lucide-react";
 
 export default function ArtistsPage() {
-  const [user, setUser] = useState<any>(null);
   const [artists, setArtists] = useState<Artist[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -21,255 +21,154 @@ export default function ArtistsPage() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        setUser(currentUser);
+        setUserId(currentUser.uid);
         await loadArtists(currentUser.uid);
       } else {
         router.push("/auth");
         setLoading(false);
       }
     });
-
     return () => unsubscribe();
   }, [router]);
 
-  const loadArtists = async (userId: string) => {
+  const loadArtists = async (uid: string) => {
     setError(null);
     try {
-      console.log("Loading artists for user:", userId);
-      // Try simple query first (no orderBy to avoid index requirement)
-      const artistsRef = collection(db, "artists");
-      const q = query(artistsRef, where("userId", "==", userId));
+      const q = query(collection(db, "artists"), where("userId", "==", uid));
       const snapshot = await getDocs(q);
-      console.log("Artists query result:", snapshot.docs.length, "documents");
-      
-      if (snapshot.empty) {
-        console.log("No artists found for user");
-        setArtists([]);
-        setLoading(false);
-        return;
-      }
-      
-      const artistsData = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        
-        // Helper function to convert Firestore Timestamp to Date
-        const convertTimestamp = (timestamp: any): Date => {
-          if (!timestamp) {
-            return new Date();
-          }
-          
-          // Check if it's already a Date
-          if (timestamp instanceof Date) {
-            if (!isNaN(timestamp.getTime())) {
-              return timestamp;
-            }
-            return new Date();
-          }
-          
-          // Check if it's an empty object (no enumerable properties)
-          if (typeof timestamp === 'object' && Object.keys(timestamp).length === 0) {
-            return new Date();
-          }
-          
-          // Try toDate() method first (Firestore Timestamp)
-          if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp && typeof timestamp.toDate === 'function') {
-            try {
-              const date = timestamp.toDate();
-              if (date instanceof Date && !isNaN(date.getTime())) {
-                return date;
-              }
-            } catch (e) {
-              // Continue to other methods
-            }
-          }
-          
-          // Check for seconds property (Firestore Timestamp format)
-          if (typeof timestamp === 'object' && 'seconds' in timestamp && typeof timestamp.seconds === 'number') {
-            const date = new Date(timestamp.seconds * 1000);
-            if (!isNaN(date.getTime())) {
-              return date;
-            }
-          }
-          
-          // Check for _seconds (internal Firestore property)
-          if (typeof timestamp === 'object' && '_seconds' in timestamp && typeof (timestamp as any)._seconds === 'number') {
-            const date = new Date((timestamp as any)._seconds * 1000);
-            if (!isNaN(date.getTime())) {
-              return date;
-            }
-          }
-          
-          // Try to create Date from the value itself
+
+      const convertTimestamp = (ts: any): Date => {
+        if (!ts) return new Date();
+        if (ts instanceof Date && !isNaN(ts.getTime())) return ts;
+        if (typeof ts === "object" && "toDate" in ts) {
           try {
-            const date = new Date(timestamp);
-            if (!isNaN(date.getTime())) {
-              return date;
-            }
-          } catch (e) {
-            // Ignore
-          }
-          
-          // If all else fails, return current date
-          return new Date();
-        };
-        
+            const d = ts.toDate();
+            if (!isNaN(d.getTime())) return d;
+          } catch {}
+        }
+        if (typeof ts === "object" && "seconds" in ts) {
+          return new Date(ts.seconds * 1000);
+        }
+        const d = new Date(ts);
+        return isNaN(d.getTime()) ? new Date() : d;
+      };
+
+      const data = snapshot.docs.map((doc) => {
+        const d = doc.data();
         return {
           id: doc.id,
-          userId: data.userId,
-          name: data.name,
-          slug: data.slug,
-          bio: data.bio,
-          profileImageUrl: data.profileImageUrl,
-          website: data.website,
-          socialLinks: data.socialLinks,
-          newsletterEmails: data.newsletterEmails || [],
-          createdAt: convertTimestamp(data.createdAt),
-          updatedAt: convertTimestamp(data.updatedAt),
+          userId: d.userId,
+          name: d.name,
+          slug: d.slug,
+          bio: d.bio,
+          profileImageUrl: d.profileImageUrl,
+          website: d.website,
+          socialLinks: d.socialLinks,
+          newsletterEmails: d.newsletterEmails || [],
+          createdAt: convertTimestamp(d.createdAt),
+          updatedAt: convertTimestamp(d.updatedAt),
         } as Artist;
       });
-      
-      // Sort client-side
-      artistsData.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-      
-      console.log("Parsed artists:", artistsData);
-      setArtists(artistsData);
+      data.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      setArtists(data);
       setLoading(false);
-    } catch (error: any) {
-      console.error("Error loading artists:", error);
-      console.error("Error code:", error.code);
-      console.error("Error message:", error.message);
-      setError(error.message || "Failed to load artists");
-      setArtists([]);
+    } catch (err: any) {
+      setError(err.message || "Failed to load artists");
       setLoading(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading artists...</div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <p className="text-sm text-gray-400">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="container mx-auto max-w-7xl">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <User className="h-8 w-8" />
-              Artists
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              Manage and view all your artists
-            </p>
-          </div>
-          <Button onClick={() => router.push("/artists/new")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Artist
+    <AppLayout
+      title="Artists"
+      action={
+        <Button size="sm" onClick={() => router.push("/artists/new")}>
+          <Plus className="h-4 w-4 mr-1.5" />
+          New Artist
+        </Button>
+      }
+    >
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <p className="text-sm text-red-600">{error}</p>
+          <button
+            className="text-xs text-red-500 underline mt-1"
+            onClick={() => userId && loadArtists(userId)}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {artists.length === 0 && !error ? (
+        <div className="bg-white rounded-lg border border-gray-200 p-16 text-center">
+          <Users className="h-10 w-10 mx-auto text-gray-300 mb-4" />
+          <p className="text-sm text-gray-400 mb-4">No artists yet.</p>
+          <Button size="sm" onClick={() => router.push("/artists/new")}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            Create Artist
           </Button>
         </div>
-
-        {error && (
-          <Card className="border-destructive">
-            <CardContent className="py-4">
-              <p className="text-destructive">Error: {error}</p>
-              <Button
-                variant="outline"
-                className="mt-2"
-                onClick={() => user && loadArtists(user.uid)}
-              >
-                Retry
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {!error && !loading && (
-          <>
-            {artists.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground text-lg">
-                    No artists yet. Create your first artist to get started!
-                  </p>
-                  <Button
-                    className="mt-4"
-                    onClick={() => router.push("/artists/new")}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Artist
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {artists.map((artist) => (
-                  <Card
-                    key={artist.id}
-                    className="overflow-hidden hover:shadow-lg transition-shadow"
-                  >
-                    <div className="relative aspect-square w-full bg-muted flex items-center justify-center">
-                      {artist.profileImageUrl ? (
-                        <img
-                          src={artist.profileImageUrl}
-                          alt={artist.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <User className="h-16 w-16 text-muted-foreground" />
-                      )}
-                    </div>
-                    <CardContent className="p-4">
-                      <div className="mb-3">
-                        <h3 className="font-semibold text-lg truncate">
-                          {artist.name}
-                        </h3>
-                        {artist.bio && (
-                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                            {artist.bio}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex flex-col gap-2">
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="w-full"
-                          onClick={() => router.push(`/artist/${artist.id}`)}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          Details
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full"
-                          onClick={() => router.push(`/artist/edit/${artist.id}`)}
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
-                      </div>
-
-                      <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
-                        <p>Created: {formatDate(artist.createdAt)}</p>
-                        {artist.newsletterEmails && artist.newsletterEmails.length > 0 && (
-                          <p>Newsletter: {artist.newsletterEmails.length} emails</p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {artists.map((artist) => (
+            <div
+              key={artist.id}
+              className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+            >
+              <div className="relative aspect-square w-full bg-gray-100 flex items-center justify-center">
+                {artist.profileImageUrl ? (
+                  <img
+                    src={artist.profileImageUrl}
+                    alt={artist.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Users className="h-10 w-10 text-gray-300" />
+                )}
               </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
+
+              <div className="p-3">
+                <p className="font-medium text-sm text-gray-900 truncate">{artist.name}</p>
+                {artist.bio && (
+                  <p className="text-xs text-gray-400 line-clamp-2 mt-0.5">{artist.bio}</p>
+                )}
+
+                <div className="flex items-center gap-1 mt-3">
+                  <button
+                    onClick={() => router.push(`/artist/${artist.id}`)}
+                    className="flex-1 text-xs text-center py-1.5 bg-gray-900 text-white rounded hover:bg-gray-700 transition-colors"
+                  >
+                    Details
+                  </button>
+                  <button
+                    onClick={() => router.push(`/artist/edit/${artist.id}`)}
+                    className="p-1.5 text-gray-400 hover:text-gray-700 border border-gray-200 rounded transition-colors"
+                    title="Edit"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <p className="text-xs text-gray-400 mt-2">
+                  {formatDate(artist.createdAt)}
+                  {artist.newsletterEmails && artist.newsletterEmails.length > 0 && (
+                    <> &middot; {artist.newsletterEmails.length} subscribers</>
+                  )}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </AppLayout>
   );
 }
-

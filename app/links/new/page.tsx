@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import AppLayout from "@/components/app-layout";
-import ReleaseForm from "@/components/release-form";
+import LinkForm from "@/components/link-form";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
-export default function NewReleasePage() {
-  const router = useRouter();
+export default function NewLinkPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -30,9 +30,9 @@ export default function NewReleasePage() {
 
   return (
     <AppLayout
-      title="New Release"
+      title="New Link"
       action={
-        <Button size="sm" variant="outline" onClick={() => router.push("/releases")}>
+        <Button size="sm" variant="outline" onClick={() => router.push("/links")}>
           <ArrowLeft className="h-4 w-4 mr-1.5" />
           Back
         </Button>
@@ -40,9 +40,9 @@ export default function NewReleasePage() {
     >
       <div className="max-w-2xl">
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <ReleaseForm
-            onSuccess={() => router.push("/releases")}
-            onCancel={() => router.push("/releases")}
+          <LinkForm
+            onSuccess={() => router.push("/links")}
+            onCancel={() => router.push("/links")}
           />
         </div>
       </div>

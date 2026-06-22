@@ -1,31 +1,32 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import AppLayout from "@/components/app-layout";
 import ArtistForm from "@/components/artist-form";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 export default function NewArtistPage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="container mx-auto max-w-4xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>Create New Artist</CardTitle>
-            <CardDescription>
-              Add a new artist to your collection
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ArtistForm
-              onSuccess={() => router.push("/artists")}
-              onCancel={() => router.push("/artists")}
-            />
-          </CardContent>
-        </Card>
+    <AppLayout
+      title="New Artist"
+      action={
+        <Button size="sm" variant="outline" onClick={() => router.push("/artists")}>
+          <ArrowLeft className="h-4 w-4 mr-1.5" />
+          Back
+        </Button>
+      }
+    >
+      <div className="max-w-2xl">
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <ArtistForm
+            onSuccess={() => router.push("/artists")}
+            onCancel={() => router.push("/artists")}
+          />
+        </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
-

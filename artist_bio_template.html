@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Connect with Ryan Miller: Music, Socials, Videos, and more. Follow Ryan Miller on Instagram, TikTok, Spotify, Tidal, YouTube, Apple Music and more.">
+  <link rel="canonical" href="https://ryanmiller.one">
+  <title>Ryan Miller | Follow</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <!-- Favicon & App Icons -->
+  <link rel="apple-touch-icon" sizes="180x180" href="favicons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicons/favicon-16x16.png">
+  <link rel="shortcut icon" href="favicons/favicon.ico">
+  <link rel="manifest" href="favicons/site.webmanifest">
+  <link rel="mask-icon" href="https://cnd.nord95.com/icons/safari-pinned-tab.svg" color="#1db954">
+  <meta name="msapplication-TileColor" content="#1db954">
+  <meta name="theme-color" content="#1db954">
+  <link rel="icon" type="image/png" sizes="192x192" href="favicons/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="favicons/android-chrome-512x512.png">
+
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Ryan Miller - Official Links">
+  <meta property="og:description" content="Connect with Ryan Miller: Music, Socials, Videos, and more.">
+  <meta property="og:url" content="https://ryanmiller.one">
+  <meta property="og:image" content="https://ryanmiller.one/meta-Ryan-Miller-2025-06.jpg">
+
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@RyanMiller_one">
+  <meta name="twitter:title" content="Ryan Miller - Official Links">
+  <meta name="twitter:description" content="Connect with Ryan Miller: Music, Socials, Videos, and more.">
+  <meta name="twitter:image" content="https://ryanmiller.one/meta-Ryan-Miller-2025-06.jpg">
+
+  <style>
+    :root {
+      --bg-dark: #0e0e0e;
+      --text-light: #f1f1f1;
+      --accent: #1db954;
+      --card-bg: #fdfcfc;
+      --shadow: rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      color: var(--text-light);
+      font-family: 'Inter', sans-serif;
+      position: relative;
+      min-height: 100vh;
+      background-color: #0e0e0e;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: url('https://ryanmiller.one/ef59f24b-a79c-4e7c-957e-5a2a4fa3c3b5-2.jpg') no-repeat center center;
+      background-size: cover;
+      filter: blur(50px);
+      transform: scale(1.5);
+      z-index: -2;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), #0e0e0e 80%);
+      z-index: -1;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .album-art {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 1.5rem;
+      box-shadow: 0 10px 40px var(--shadow);
+      margin-bottom: 2rem;
+    }
+
+    #album-art-mobile {
+      display: none;
+    }
+
+    #album-art-desktop {
+      opacity: 0;
+      transform: translateY(-20px);
+      animation: fadeInUp 0.8s ease forwards;
+      animation-delay: 0.1s;
+    }
+
+    .text-group {
+      text-align: center;
+      margin-bottom: 3rem;
+      opacity: 0;
+      transform: translateY(-20px);
+      animation: fadeInUp 0.8s ease forwards;
+      animation-delay: 0.3s;
+    }
+
+    .text-group h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+
+    .text-group p {
+      font-size: 1.25rem;
+      color: #ccc;
+    }
+
+    .newsletter-section {
+      width: 100%;
+      max-width: 800px;
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.8s ease forwards;
+      animation-delay: 0.4s;
+    }
+
+    .newsletter-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .newsletter-form #mc_embed_signup_scroll {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 1rem;
+      width: 100%;
+      align-items: flex-start;
+    }
+
+    .newsletter-form #mce-responses {
+      flex-basis: 100%;
+      order: 3;
+    }
+
+    .newsletter-form .mc-field-group {
+      order: 1;
+    }
+
+    .newsletter-form .clear {
+      order: 2;
+    }
+
+    .newsletter-form input[type="email"],
+    .newsletter-form #mce-EMAIL {
+      width: 100%;
+      padding: 1rem;
+      border: 2px solid rgba(241, 241, 241, 0.2);
+      border-radius: 0.75rem;
+      background: rgba(253, 252, 252, 0.1);
+      color: var(--text-light);
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .newsletter-form input[type="email"]::placeholder,
+    .newsletter-form #mce-EMAIL::placeholder {
+      color: rgba(241, 241, 241, 0.5);
+    }
+
+    .newsletter-form input[type="email"]:focus,
+    .newsletter-form #mce-EMAIL:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(253, 252, 252, 0.15);
+    }
+
+    .newsletter-form input[type="submit"],
+    .newsletter-form #mc-embedded-subscribe {
+      width: 100%;
+      padding: 1rem 2rem;
+      background: var(--accent);
+      color: #ffffff;
+      border: none;
+      border-radius: 0.75rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .newsletter-form input[type="submit"]:hover,
+    .newsletter-form #mc-embedded-subscribe:hover {
+      background: #1ed760;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(29, 185, 84, 0.3);
+    }
+
+    .newsletter-form .mc-field-group {
+      flex: 1;
+    }
+
+    .newsletter-form .clear {
+      flex-shrink: 0;
+    }
+
+    .newsletter-form input[type="email"],
+    .newsletter-form #mce-EMAIL {
+      width: 100%;
+    }
+
+    .newsletter-form input[type="submit"],
+    .newsletter-form #mc-embedded-subscribe {
+      width: auto;
+      min-width: 150px;
+      white-space: nowrap;
+    }
+
+    .newsletter-form #mce-responses {
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    .newsletter-form #mce-error-response,
+    .newsletter-form #mce-success-response {
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .newsletter-form #mce-error-response {
+      background: rgba(255, 0, 0, 0.2);
+      color: #ff6b6b;
+    }
+
+    .newsletter-form #mce-success-response {
+      background: rgba(29, 185, 84, 0.2);
+      color: #1ed760;
+    }
+
+    #mc_embed_signup_scroll {
+      width: 100%;
+    }
+
+    .newsletter-divider {
+      width: 100%;
+      max-width: 800px;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(241, 241, 241, 0.3), transparent);
+      margin: 1rem 0;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.8s ease forwards;
+      animation-delay: 0.5s;
+    }
+
+    .platforms {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    .platform-divider {
+      grid-column: 1 / -1;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(241, 241, 241, 0.3), transparent);
+      margin: 1rem 0;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.8s ease forwards;
+      animation-delay: 0.9s;
+    }
+
+    .platform-tile {
+      background: var(--card-bg);
+      border-radius: 1rem;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.8s ease forwards;
+      position: relative;
+    }
+
+    .platform-tile:nth-child(1) { animation-delay: 0.6s; }
+    .platform-tile:nth-child(2) { animation-delay: 0.65s; }
+    .platform-tile:nth-child(3) { animation-delay: 0.7s; }
+    .platform-tile:nth-child(4) { animation-delay: 0.75s; }
+    .platform-tile:nth-child(5) { animation-delay: 0.8s; }
+    .platform-tile:nth-child(6) { animation-delay: 1.0s; }
+    .platform-tile:nth-child(7) { animation-delay: 1.05s; }
+    .platform-tile:nth-child(8) { animation-delay: 1.1s; }
+    .platform-tile:nth-child(9) { animation-delay: 1.15s; }
+    .platform-tile:nth-child(10) { animation-delay: 1.2s; }
+    .platform-tile:nth-child(11) { animation-delay: 1.25s; }
+    .platform-tile:nth-child(12) { animation-delay: 1.3s; }
+    .platform-tile:nth-child(13) { animation-delay: 1.35s; }
+
+    .platform-tile:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px var(--shadow);
+    }
+
+    .platform-tile img {
+      max-width: 100px;
+      height: auto;
+    }
+
+    .new-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: #ff0000;
+      color: #ffffff;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.5rem;
+      text-transform: uppercase;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .new {
+      animation: zoomInOut 1.5s ease-in-out infinite;
+    }
+
+    @keyframes zoomInOut {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.1);
+      }
+    }
+
+    .bio-section {
+      width: 100%;
+      max-width: 800px;
+      margin-bottom: 3rem;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.8s ease forwards;
+      animation-delay: 0.2s;
+    }
+
+    .bio-text {
+      color: var(--text-light);
+      font-size: 1rem;
+      line-height: 1.6;
+      margin-bottom: 0.5rem;
+    }
+
+    .bio-full {
+      display: none;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .bio-full.show {
+      display: inline;
+      animation: fadeInSlide 0.6s ease forwards;
+    }
+
+    @keyframes fadeInSlide {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .read-more {
+      color: #ffffff;
+      cursor: pointer;
+      text-decoration: underline;
+      font-weight: 600;
+      margin-left: 0.25rem;
+      transition: all 0.3s ease;
+    }
+
+    .read-more:hover {
+      opacity: 0.7;
+      transform: scale(1.05);
+    }
+
+    .copyright {
+      text-align: center;
+      color: rgba(241, 241, 241, 0.6);
+      font-size: 0.875rem;
+      margin-top: 3rem;
+      padding: 1rem;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.8s ease forwards;
+      animation-delay: 1.8s;
+    }
+    .photo-container {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      opacity: 0;
+      transform: translateY(-20px);
+      animation: fadeInUp 0.8s ease forwards;
+      animation-delay: 0.1s;
+    }
+.logo-container {
+  display: none;
+  z-index: 1;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2rem;
+  position: absolute;
+  left: 50%;
+  top: -40px;
+  margin-top: 0;
+  opacity: 0;
+  transform: translateX(calc(-50% - 100px));
+  transform-origin: center center;
+  animation: logoSlideIn 0.8s ease-out forwards;
+  animation-delay: 0.2s;
+  filter: drop-shadow(0 0 5px rgba(80, 250, 254, 0.5));
+  transition: filter 0.1s ease, opacity 0.1s ease;
+}
+
+@keyframes logoSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(calc(-50% - 100px));
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%);
+  }
+}
+
+.photo-container {
+  position: relative;
+}
+
+.logo {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  position: relative;
+  transform: translateY(-50%);
+  margin-top: 0;
+}
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        background-color: #000000;
+      }
+
+      body::before {
+        display: none;
+      }
+
+      body::after {
+        display: none;
+      }
+
+      .logo-container {
+        display: flex;
+      }
+
+      .text-group {
+        display: none;
+      }
+
+      #album-art-desktop {
+        display: none;
+      }
+
+      #album-art-mobile {
+        display: block;
+      }
+
+      .photo-container::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(to bottom, transparent 40%, #000000 90%);
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .container {
+        padding-top: 40px;
+      }
+
+      .album-art {
+        border-radius: 0;
+        max-width: 100%;
+        width: 100vw;
+        margin-left: calc(-2rem);
+        margin-right: calc(-2rem);
+      }
+
+      .newsletter-section {
+        margin-bottom: 1rem;
+      }
+
+      .newsletter-form .clear {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .newsletter-form input[type="submit"],
+      .newsletter-form #mc-embedded-subscribe {
+        width: 50px;
+        height: 50px;
+        padding: 0;
+        border-radius: 50%;
+        min-width: 50px;
+        font-size: 0;
+        color: transparent;
+        text-indent: -9999px;
+        overflow: hidden;
+        position: relative;
+        background: var(--accent);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'%3E%3C/line%3E%3Cpolyline points='12 5 19 12 12 19'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 20px 20px;
+        -webkit-appearance: none;
+        appearance: none;
+        transition: none;
+      }
+
+      .newsletter-form input[type="submit"]:hover,
+      .newsletter-form input[type="submit"]:active,
+      .newsletter-form input[type="submit"]:focus,
+      .newsletter-form #mc-embedded-subscribe:hover,
+      .newsletter-form #mc-embedded-subscribe:active,
+      .newsletter-form #mc-embedded-subscribe:focus {
+        transform: none;
+        box-shadow: none;
+        background: #ffffff;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%231db954' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'%3E%3C/line%3E%3Cpolyline points='12 5 19 12 12 19'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 20px 20px;
+      }
+
+      .newsletter-divider {
+        margin: 0.75rem 0;
+      }
+
+      .platform-divider {
+        margin: 0.75rem 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="photo-container">
+    <img src="ef59f24b-a79c-4e7c-957e-5a2a4fa3c3b5-2.jpg" alt="Ryan Miller - Artist and Musician Profile Photo" class="album-art" id="album-art-mobile">
+  </div>
+  <div class="container">
+    <img src="ef59f24b-a79c-4e7c-957e-5a2a4fa3c3b5-2.jpg" alt="Ryan Miller - Artist and Musician Profile Photo" class="album-art" id="album-art-desktop">
+<div class="logo-container">
+  <img src="logo-2048x1040.png" alt="Ryan Miller - Logo" class="logo">
+</div>
+    <div class="text-group">
+      <h1>Ryan Miller</h1>
+      <p>@ryanmiller.one</p>
+    </div>
+
+    <div class="newsletter-section">
+      <div id="mc_embed_shell">
+        <div id="mc_embed_signup">
+          <form action="https://iamryanmiller.us2.list-manage.com/subscribe/post?u=3e07b07e47945e180c24bb09d&amp;id=5a31726d25&amp;f_id=005d93e3f0" method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" class="validate newsletter-form" target="_self" novalidate="">
+            <div id="mc_embed_signup_scroll">
+              <div class="indicates-required" style="display: none;"><span class="asterisk">*</span> indicates required</div>
+              <div class="mc-field-group">
+                <label for="mce-EMAIL" style="display: none;">Email Address <span class="asterisk">*</span></label>
+                <input type="email" name="EMAIL" class="required email" id="mce-EMAIL" required="" value="" placeholder="Enter your email">
+                <span id="mce-EMAIL-HELPERTEXT" class="helper_text" style="display: none;">Required Field</span>
+              </div>
+              <div hidden=""><input type="hidden" name="tags" value="1960777"></div>
+              <div id="mce-responses" class="clear">
+                <div class="response" id="mce-error-response" style="display: none;"></div>
+                <div class="response" id="mce-success-response" style="display: none;"></div>
+              </div>
+              <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_3e07b07e47945e180c24bb09d_5a31726d25" tabindex="-1" value=""></div>
+              <div class="clear"><input type="submit" name="subscribe" id="mc-embedded-subscribe" class="button" value="Subscribe"></div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="newsletter-divider"></div>
+
+   <!-- <div class="bio-section">
+      <p class="bio-text">
+        <span class="bio-preview">Ryan Miller is an artist known for his unique and genre-defying sound. Pop, rock, dance, and a hint of electronic</span><span class="bio-full"> and experimental influences all come together in his music. Themes of love, sorrow, and the human experience are frequently explored in Miller's songs, which are both reflective and emotive. His melodies are intricate and catchy, and his lyrics are personal and relatable. When it comes to his music, he considers himself a risk-taker and a rule-breaker, not hesitant to write songs that incorporate elements from other genres or styles.</span><span class="bio-ellipsis">...</span> <span class="read-more" onclick="toggleBio()">Read More</span>
+      </p>
+    </div> -->
+
+    <div class="platforms">
+      <a href="https://www.youtube.com/@RyanMiller_one?sub_confirmation=1" target="_blank" class="platform-tile">
+        <img src="https://services.linkfire.com/logo_youtube_onlight.svg" alt="Subscribe on YouTube">
+      </a>
+      <a href="https://www.instagram.com/ryanmiller.one/" target="_blank" class="platform-tile">
+        <img src="https://services.linkfire.com/logo_instagram_onlight.svg" alt="Instagram">
+      </a>
+      <a href="https://tiktok.com/@ryanmiller.one" target="_blank" class="platform-tile">
+        <img src="https://services.linkfire.com/logo_tiktok_onlight.svg" alt="TikTok">
+      </a>
+      <!-- <a href="https://www.facebook.com/RyanMiller.one" target="_blank" class="platform-tile">
+        <img src="https://services.linkfire.com/logo_facebook_onlight.svg" alt="Facebook">
+      </a> -->
+      <!-- <a href="https://www.twitch.tv/ryanmiller_one" target="_blank" class="platform-tile">
+        <img src="https://services.linkfire.com/logo_twitch_onlight.svg" alt="Twitch">
+      </a> -->
+      <div class="platform-divider"></div>
+      <a href="https://open.spotify.com/artist/692g56Aj8dgEbxGYkCnrCS" target="_blank" class="platform-tile">
+        <img src="https://services.linkfire.com/logo_spotify_onlight.svg" alt="Spotify">
+      </a>
+      <a href="https://music.apple.com/us/artist/ryan-miller/1512059222" target="_blank" class="platform-tile">
+        <img src="https://services.linkfire.com/logo_applemusic_onlight.svg" alt="Apple Music">
+      </a>
+      <a href="https://listen.tidal.com/artist/19806972" target="_blank" class="platform-tile">
+        <img src="https://services.linkfire.com/logo_tidal_onlight.svg" alt="Tidal">
+      </a>
+      <a href="https://music.amazon.com/artists/B0011ZUAN0/ryan-miller" target="_blank" class="platform-tile">
+        <img src="https://services.linkfire.com/logo_amazonmusic_onlight.svg" alt="Amazon Music">
+      </a>
+      <a href="https://www.deezer.com/en/artist/114833942" target="_blank" class="platform-tile">
+        <img src="https://services.linkfire.com/logo_deezer_onlight.svg" alt="Deezer">
+      </a>
+      <a href="https://ryanmillermusic.bandcamp.com/" target="_blank" class="platform-tile">
+        <img src="https://services.linkfire.com/logo_bandcamp_onlight.svg" alt="Bandcamp">
+      </a>
+      <a href="https://wa.me/447568994928" target="_blank" class="platform-tile">
+        <img src="https://services.linkfire.com/logo_text-me_onlight.svg" alt="Text Me">
+        <span class="new-badge new">NEW</span>
+      </a>
+    </div>
+
+    <div class="copyright">
+      <p>Copyright &copy; <span id="year"></span> Ryan Miller. All rights reserved.</p>
+    </div>
+  </div>
+
+  <script>
+    // Set copyright year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    function toggleBio() {
+      const bioFull = document.querySelector('.bio-full');
+      const readMore = document.querySelector('.read-more');
+      const ellipsis = document.querySelector('.bio-ellipsis');
+      
+      if (bioFull.classList.contains('show')) {
+        // Closing
+        bioFull.style.opacity = '0';
+        bioFull.style.transform = 'translateY(-10px)';
+        // Wait for animation to complete before hiding
+        setTimeout(() => {
+          bioFull.classList.remove('show');
+          bioFull.style.display = 'none';
+          readMore.textContent = 'Read More';
+          ellipsis.style.display = 'inline';
+        }, 300);
+      } else {
+        // Opening
+        ellipsis.style.display = 'none';
+        bioFull.style.display = 'inline';
+        bioFull.style.opacity = '0';
+        bioFull.style.transform = 'translateY(-10px)';
+        // Force reflow to ensure animation triggers
+        void bioFull.offsetWidth;
+        bioFull.classList.add('show');
+        readMore.textContent = 'Read Less';
+      }
+    }
+
+    // Neon flicker effect for logo-container
+    function neonFlicker() {
+      const logoContainer = document.querySelector('.logo-container');
+      if (!logoContainer) return;
+
+      const flickerIntensities = [
+        'drop-shadow(0 0 5px rgba(80, 250, 254, 0.4))',
+        'drop-shadow(0 0 8px rgba(80, 250, 254, 0.5))',
+        'drop-shadow(0 0 10px rgba(80, 250, 254, 0.6))',
+        'drop-shadow(0 0 6px rgba(80, 250, 254, 0.45))',
+        'drop-shadow(0 0 9px rgba(80, 250, 254, 0.55))',
+        'drop-shadow(0 0 7px rgba(80, 250, 254, 0.5))',
+        'drop-shadow(0 0 8px rgba(80, 250, 254, 0.5))',
+        'drop-shadow(0 0 6px rgba(80, 250, 254, 0.45))'
+      ];
+
+      const opacityValues = [0.95, 0.98, 1.0, 0.97, 0.99, 0.96, 1.0, 0.98];
+      
+      function flicker() {
+        if (logoContainer.style.display !== 'none') {
+          const randomIntensity = flickerIntensities[Math.floor(Math.random() * flickerIntensities.length)];
+          const randomOpacity = opacityValues[Math.floor(Math.random() * opacityValues.length)];
+          logoContainer.style.filter = randomIntensity;
+          logoContainer.style.opacity = randomOpacity;
+        }
+        
+        // Random timing between 50ms and 200ms for flicker effect
+        const nextFlicker = 50 + Math.random() * 150;
+        setTimeout(flicker, nextFlicker);
+      }
+      
+      flicker();
+    }
+
+    // Start neon flicker effect after initial animation completes (0.2s delay + 0.8s duration = 1.0s)
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(neonFlicker, 1000);
+    });
+  </script>
+</body>
+</html>
+
