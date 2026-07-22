@@ -35,3 +35,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# local planning & workspace (not for repo)
+.cursor/plans/
+local-workspace/
+
